@@ -1,0 +1,7 @@
+Kinda quick, one overshoot, little ossicilations
+
+#define MAX_SPEED 200
+#define MIN_SPEED 70
+#define SPEED_TRESH 2
+
+double Kp = 20, Ki = 5, Kd = 0.5; 
