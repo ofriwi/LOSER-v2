@@ -6,7 +6,6 @@ int steps_per_revolution = 400;
 int offset = 128;
 bool input = false;
 int angle;
-int ratio = 110/90*360*step_mode/steps_per_revolution;
 
 //For the Gyro
 MPU9250 myIMU;
@@ -22,7 +21,6 @@ bool newData = false;
 //BT
 SoftwareSerial bt (2, 4);
 
-
 void setup() {
   Wire.begin();
   
@@ -35,13 +33,6 @@ void setup() {
   {
     // Start by performing self test and reporting values
     myIMU.MPU9250SelfTest(myIMU.SelfTest);
-//    Serial.print("x-axis self test: gyration trim within : ");
-//    Serial.print(myIMU.SelfTest[3],1); Serial.println("% of factory value");
-//    Serial.print("y-axis self test: gyration trim within : ");
-//    Serial.print(myIMU.SelfTest[4],1); Serial.println("% of factory value");
-//    Serial.print("z-axis self test: gyration trim within : ");
-//    Serial.print(myIMU.SelfTest[5],1); Serial.println("% of factory value");
-    // Calibrate gyro and accelerometers, load biases in bias registers
     myIMU.calibrateMPU9250(myIMU.gyroBias, myIMU.accelBias);
     myIMU.initMPU9250();
   } // if (c == 0x71)
@@ -109,9 +100,5 @@ void loop() {
     input = true;
   }*/
   
-  // Move the stepper
-  /**if (input){
-    //Serial.println(angle);
-    //stepper.move(angle*ratio);
-  }  **/
+
 }
