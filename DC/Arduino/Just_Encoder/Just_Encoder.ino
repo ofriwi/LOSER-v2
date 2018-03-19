@@ -20,7 +20,7 @@ int counter = 0;
 
 // *** BT ***
 SoftwareSerial bt (2,4);  //RX, TX (Switched on the Bluetooth - RX -> TX | TX -> RX)
-bool use_bt = true;
+bool use_bt = false;
 int input = 0;
 char sign;
 
@@ -48,7 +48,7 @@ double oldPosition  = -999;
 
 // *** PID ***
 double Setpoint, In, Output;
-double Kp = 3, Ki = 1, Kd = 0.5; 
+double Kp = 20, Ki = 5, Kd = 0.5; 
 PID pid(&In, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void setup() {
@@ -77,67 +77,21 @@ void loop() {
   In = newPosition;
   if (abs(newPosition - oldPosition) > ENCODER_STEP){
     oldPosition = newPosition;
-    Serial.print("Angle: ");Serial.println(newPosition);
-    //Serial.print("Distance from target: ");Serial.println(target - newPosition);
+    Serial.println(newPosition);
   }
-
-  gyroSend();
-
-  
-  // *** Get input ***
-  if (use_bt){ 
-    if (bt.available()){
-      delay(3);
-      sign = bt.read();
-      input = (int)bt.read();
-
-      Serial.print("input: ");
-      Serial.print(sign);
-      Serial.println(input);
-    
-      if (sign == '-'){
-        input = -input;
-      }
-      new_input = true;
-    }
-  }else{
-    if (Serial.available() > 0) { 
-      input = (int)Serial.parseInt();
-      delay(1);
-      while(Serial.available()) Serial.read();
-      Serial.print("input: ");
-      Serial.println(String(input));
-      new_input = true;
-    }
-  }
-
-  
-  // *** Move motor ***
-  if (new_input){
-    new_input = false;
-    input = input % 360;
-    if (input > 180){
-      input -= 360;
-    }
-    rotate(0);
-    target = newPosition + input;
-    target = target % 360;
-    if (target > 180){
-      target -= 360;
-    }
-    dir_to_target = target>newPosition;
-
-    //Serial.print("SP: "); Serial.println(target);
-  }
-
-  move_to_target();
 }
 
 void move_to_target(){
   Setpoint = target;
   pid.Compute();
   int speedd = (int)Output;
-  speedd = normalize(speedd, MIN_SPEED, MAX_SPEED, SPEED_TRESH);
+  if (Output > SPEED_TRESH){
+    speedd = max(Output, MIN_SPEED);
+  }else if (Output < -SPEED_TRESH){
+    speedd = min(Output, -MIN_SPEED);
+  }else{
+    speedd = 0;
+  }
   if (counter % 15000 == 0){
     Serial.print("Angle: "); Serial.print(In);
     Serial.print("->"); Serial.println(Setpoint);
@@ -152,6 +106,7 @@ void rotate(int rot_speed){
    if (cur_direction != new_direction){
     analogWrite(enA, 0);
     //Serial.println("Change dir");
+    delay(100);
    }
    direction(rot_speed>0);
    analogWrite(enA, abs(rot_speed));
@@ -204,19 +159,8 @@ void gyroSend(){
     if (send_time > 200){
       bt.print('g');
       bt.print(theta);
-      //Serial.print("IMU");Serial.println(theta);
+      Serial.println(theta);
       theta = 0.0;
       send_time = 0;
     }
-}
-
-int normalize(int input, int min_value, int max_value, int cut_off){
-    int norm = abs(input);
-    if (norm < cut_off)
-        return 0;
-    norm = norm + min_value - cut_off;
-    norm = min(norm, max_value);
-    if (input < 0)
-        norm = -norm;
-    return norm;
 }

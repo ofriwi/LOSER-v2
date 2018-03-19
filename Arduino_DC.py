@@ -23,7 +23,7 @@ class Arduino_BT_DC:
         #self.sock.send(speed)#struct.pack('>i', abs(speed)))
         self.sock.send(struct.pack('>B', abs(speed)))
         #self.sock.send(str(speed))
-         
+    
     #Close serial
     def cleanup(self):
         self.move(0);

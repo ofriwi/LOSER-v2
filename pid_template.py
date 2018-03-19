@@ -7,7 +7,7 @@ Kp = 0; Ki = 0; Kd = 0;
 pid = PID(Kp, Ki, Kd);
 motor = Arduino_BT_DC()
 pid.setWindup(!!!!!!!!!!);
-
+pid.SetPoint = 0
 
 
 
