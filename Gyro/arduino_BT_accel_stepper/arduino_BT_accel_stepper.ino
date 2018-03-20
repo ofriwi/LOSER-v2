@@ -1,8 +1,13 @@
 #include "MPU9250.h"
 #include <SoftwareSerial.h>
+#include <Stepper.h>
 
 bool input = false;
 float dist;
+Stepper myStepper(stepsPerRevolution, 4, 5, 6, 7);
+
+//motor
+const int stepsPerRevolution = 720;
 
 //photomafsek
 const int rightPin = A3;
@@ -41,6 +46,9 @@ float dt = 0.0, gyro_ang_vel = 0.0, sensor_vel = 0.0; //get from sensors
 
 void setup() {
   Wire.begin();
+  
+   // set the motor speed at 60 rpm:
+  myStepper.setSpeed(60);
   
   Serial.begin(9600); //Open Serial connection for debugging
   bt.begin(9600);
