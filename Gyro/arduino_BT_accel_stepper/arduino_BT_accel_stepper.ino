@@ -29,7 +29,6 @@ bool newData = false;
 
 //BT
 SoftwareSerial bt (2, 4);
-char recievedChars[7];
 const char END_OF_DIST = 'd';
 const char END_OF_ANG = 'a';
 const char UPDATE_INITIALS = 'u';
@@ -66,9 +65,8 @@ void setup() {
 //Main loop
 void loop() {
   // Get data from BT
-  if(bt.available() > 0
-    
-    recievedChars = {'0'};
+  if(bt.available() > 0){
+    char recievedDist[7] = {'0'};
     char_index = 0;
     input_char = bt.read();
      if (input_char == UPDATE_INITIALS){
@@ -76,24 +74,24 @@ void loop() {
      }
     input_char = bt.read();
     while(bt.available() > 0 && input_char() != END_OF_DIST){
-      recievedChars[char_index] = input_char;
+      recievedDist[char_index] = input_char;
       char_index++;
       input_char = bt.read();
     } 
-    dist = atof(recievedChars);
+    dist = atof(recievedDist);
     
-    recievedChars = {'0'};
+    char recievedAng[7] = {'0'};
     char_index = 0;
     input_char = bt.read();    
     while (bt.available() > 0 && input_char() != END_OF_ANG){
-      recievedChars[char_index] = bt.read();
+      recievedAng[char_index] = bt.read();
       char_index++;
       input_char = bt.read();
     }
-    angle = atof(recievedChars);
+    angle = atof(recievedAng);
   }//end of BT
 
-  //Gyro reading 
+    //Gyro reading 
     myIMU.readGyroData(myIMU.gyroCount);  // Read the x/y/z adc values
     myIMU.getGres();
     // Calculate the gyro value into actual degrees per second
@@ -102,6 +100,7 @@ void loop() {
     myIMU.gy = (float)myIMU.gyroCount[1]*myIMU.gRes;
     myIMU.gz = (float)myIMU.gyroCount[2]*myIMU.gRes;
     gyro_ang_vel = myIMU.gz;
+    //END GYRO
   
     //velocity from photomafsek
     float temp_right_vel = speedFromSensor(rightPin,0);
@@ -121,24 +120,24 @@ void loop() {
     }
     else{
       sensor_vel = right_vel;
-    }
+    } 
+    //END VELOCITY
   
-     if (updateInitials){
+     if (updateInitials){ //lost of line of sight
       my_x = 0.0, my_y = 0.0;
       target_x = dist;
       theta = angle;
       updateInitials = false;
      }
-     
-    dt = millis() - myIMU.count;
-    cam_angle = angle;
-    //update x,y,theta
-    theta += gyro_ang_vel*dt;
-    my_x += sensor_vel*cos(theta*math.PI/180)*dt;
-    my_y += sensor_vel*sin(theta*math.PI/180)*dt;
-    float new_cam_angle = theta + math.atan2((-1.0*y),(target_x-x))*180/math.PI;
-    float send_angle = cam_angle-new_cam_angle; //the sending value (addition to the original angle)
-
+     else{ //updating the location based on the last info about the location (the last LOS)
+      dt = millis() - myIMU.count;
+      cam_angle = angle;
+      theta += gyro_ang_vel*dt;
+      my_x += sensor_vel*cos(theta*math.PI/180)*dt;
+      my_y += sensor_vel*sin(theta*math.PI/180)*dt;
+      float new_cam_angle = theta + math.atan2((-1.0*y),(target_x-x))*180/math.PI;
+      float send_angle = cam_angle-new_cam_angle; //the sending value (addition to the original angle)
+     }
     myIMU.count = millis();
     /**myIMU.delt_t = millis() - myIMU.count;
       gyro_val = myIMU.gz;
@@ -166,6 +165,9 @@ void loop() {
 
 }
 
+/**
+gets speed from sensor - 0 = right, left = 1
+**/
 float speedFromSensor (int pin, int index)
 {
   current_time[index] = millis()-last_loop[index];
