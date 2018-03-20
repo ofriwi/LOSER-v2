@@ -135,11 +135,11 @@ void loop() {
       my_x = 0.0, my_y = 0.0;
       target_x = dist;
       theta = angle;
+      cam_angle = angle;
       updateInitials = false;
      }
      else{ //updating the location based on the last info about the location (the last LOS)
       dt = millis() - myIMU.count;
-      cam_angle = angle;
       theta += gyro_ang_vel*dt;
       my_x += sensor_vel*cos(theta*math.PI/180)*dt;
       my_y += sensor_vel*sin(theta*math.PI/180)*dt;
