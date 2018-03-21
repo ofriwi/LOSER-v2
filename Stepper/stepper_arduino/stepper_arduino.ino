@@ -1,49 +1,68 @@
-
-/*
- Stepper Motor Control - speed control
-
- This program drives a unipolar or bipolar stepper motor.
- The motor is attached to digital pins 8 - 11 of the Arduino.
- A potentiometer is connected to analog input 0.
-
- The motor will rotate in a clockwise direction. The higher the potentiometer value,
- the faster the motor speed. Because setSpeed() sets the delay between steps,
- you may notice the motor is less responsive to changes in the sensor value at
- low speeds.
-
- Created 30 Nov. 2009
- Modified 28 Oct 2010
- by Tom Igoe
-
- */
-
 #include <Stepper.h>
+#include <SoftwareSerial.h>
 
-const int stepsPerRevolution = 400;  // change this to fit the number of steps per revolution
-// for your motor
+// *** General ***
+const bool DEBUG_MODE = true;
+bool new_input = false;
+int motorSpeed = 0;
 
-
-// initialize the stepper library on pins 8 through 11:
+// *** Stepper ***
+const int stepsPerRevolution = 400;
 Stepper myStepper(stepsPerRevolution, 4, 5, 6, 7);
+float stepsCount = 0;
 
-int stepCount = 0;  // number of steps the motor has taken
+// *** communication ***
+SoftwareSerial bt (2,4);  //RX, TX (Switched on the Bluetooth - RX -> TX | TX -> RX)
+bool use_bt = false;
+int usr_input = 0;
+char sign;
+const int BT_WAIT_TIME = 3, SER_WAIT_TIME = 1; // TODO : optimize
 
 void setup() {
+  if (use_bt){
+    bt.begin(9600);
+    //bt.listen();
+  }
   Serial.begin(9600);
-  // nothing to do inside the setup
+  myStepper.setSpeed(motorSpeed);
 }
-int motorSpeed = 0;
+
 void loop() {
-  // read the sensor value:
-  if (Serial.available()){
-    int sensorReading = Serial.parseInt();
-    // map it to a range from 0 to 100:
-    motorSpeed = sensorReading;//map(sensorReading, 0, 1023, 0, 100);
-    Serial.println(motorSpeed);
-    myStepper.setSpeed(motorSpeed);
-    // step 1/100 of a revolution:
-    myStepper.step(stepsPerRevolution / 1);
+
+  // *** Get usr_input from BT or serial ***
+  // TODO : optimize to prevet time leak
+  if (use_bt){ 
+    if (bt.available()){
+      delay(BT_WAIT_TIME);
+      sign = bt.read();
+      usr_input = (int)bt.read();
+      if (sign == '-'){
+        usr_input = -usr_input;
+      }
+      new_input = true;
+    }
+  }else{
+    if (Serial.available() > 0) { 
+      usr_input = (int)Serial.parseInt();
+      delay(SER_WAIT_TIME);
+      while(Serial.available()) Serial.read();
+      new_input = true;
+    }
+  }
+
+  if (new_input){
+      new_input = false;
+      if (DEBUG_MODE)
+        Serial.print("User input: ");Serial.println(usr_input);
+      rotate(new_input);
   }
 }
 
-
+// Rotate motor approximatly degrees and return how much degrees it really did.
+float rotate(int degrees){
+  int steps = (int)(degrees * 360.0/stepsPerRevolution);
+  myStepper.step(deg_to_degrees);
+  float real_degrees = steps * stepsPerRevolution / 360.0;
+  stepsCount += real_degrees;
+  return real_degrees;
+}
