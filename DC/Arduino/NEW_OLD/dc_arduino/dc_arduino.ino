@@ -12,7 +12,7 @@
 
 // *** BT ***
 SoftwareSerial bt (2,4);  //RX, TX (Switched on the Bluetooth - RX -> TX | TX -> RX)
-bool use_bt = false;
+bool use_bt = true;
 int input = 0;
 char sign;
 
@@ -111,4 +111,3 @@ void direction(bool cw){
   //cur_speed = input;
   //Serial.println(String(cur_speed));
   //rotate(cur_speed);
-
