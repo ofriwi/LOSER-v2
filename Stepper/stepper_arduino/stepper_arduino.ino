@@ -4,17 +4,16 @@
 // *** General ***
 const bool DEBUG_MODE = true;
 bool new_input = false;
-int motorSpeed = 0;
-
+bool use_bt = true;
+int motorSpeed = 20; // TODO: optimize
 
 // *** Stepper ***
 const int stepsPerRevolution = 400;
 Stepper myStepper(stepsPerRevolution, 4, 5, 6, 7);
-float stepsCount = 0;
+float degCount = 0;
 
 // *** communication ***
-SoftwareSerial bt (2,4);  //RX, TX (Switched on the Bluetooth - RX -> TX | TX -> RX)
-bool use_bt = false;
+SoftwareSerial bt (11,12);  //RX, TX (Switched on the Bluetooth - RX -> TX | TX -> RX)
 int usr_input = 0;
 char sign;
 const int BT_WAIT_TIME = 3, SER_WAIT_TIME = 1; // TODO : optimize
@@ -34,6 +33,7 @@ void loop() {
   // TODO : optimize to prevet time leak
   if (use_bt){ 
     if (bt.available()){
+      Serial.println("BT");
       delay(BT_WAIT_TIME);
       sign = bt.read();
       usr_input = (int)bt.read();
@@ -55,15 +55,21 @@ void loop() {
       new_input = false;
       if (DEBUG_MODE)
         Serial.print("User input: ");Serial.println(usr_input);
-      rotate(new_input);
+      rotate(usr_input);
   }
 }
 
 // Rotate motor approximatly degrees and return how much degrees it really did.
 float rotate(int degrees){
-  int steps = (int)(degrees * 360.0/stepsPerRevolution);
-  myStepper.step(deg_to_degrees);
-  float real_degrees = steps * stepsPerRevolution / 360.0;
-  stepsCount += real_degrees;
+  int steps = round(degrees / 360.0 * stepsPerRevolution);
+  if (DEBUG_MODE)
+    Serial.print("Steps: ");Serial.println(steps);
+  myStepper.step(steps);
+  float real_degrees = steps * 360.0 / stepsPerRevolution;
+  if (DEBUG_MODE)
+    Serial.print("Real deg: ");Serial.println(real_degrees);
+  degCount += real_degrees;
+  if (DEBUG_MODE)
+    Serial.print("Deg count: ");Serial.println(degCount);
   return real_degrees;
 }

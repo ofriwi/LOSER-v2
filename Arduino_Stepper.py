@@ -8,7 +8,7 @@ import bluetooth
 class Arduino_BT_Stepper:
     
     # Initialize communication
-    def __init__(self, bd_addr=Stepper_BT_ADDR, port=Stepper_BT_PORT):                
+    def __init__(self, bd_addr=STEPPER_BT_ADDR, port=STEPPER_BT_PORT):                
         self.sock = bluetooth.BluetoothSocket (bluetooth.RFCOMM)
         self.sock.connect((bd_addr,port))
 

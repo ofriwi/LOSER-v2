@@ -7,10 +7,35 @@ import scipy
 from keras.models import load_model
 
 from Constants import *
+# Ofri
+'''
 # from servo_pid import *
 from Arduino_DC import Arduino_BT_DC
 from PID import PID
+'''
+from Arduino_Stepper import Arduino_BT_Stepper
+from math import tan, degrees, radians, atan
 
+X = 0
+Y = 1
+
+stepper_motor = Arduino_BT_Stepper()
+
+ofriflag = True
+
+def pixels_to_degrees(pixels, axis):
+    if axis == X:
+        px_width = 512.0 ########## CHANGE
+        deg_width = 62.2
+    if axis == Y:
+        px_width = 256.0 ########### CHANGE
+        deg_width = 48.8
+    alpha = degrees(atan(float(pixels) * tan(radians(deg_width / 2))*2/px_width)) # Trigo
+    # alpha = float(pixels) * deg_width / px_width
+    return round(alpha)
+
+
+# End
 model = load_model("net1.h5")
 
 def crop_rect(img,rect):
@@ -31,7 +56,8 @@ def crop_rect(img,rect):
     img_crop = img_rot[pts[1][1]:pts[0][1], pts[1][0]:pts[2][0]]
     return img_crop
 
-
+# Ofri
+'''
 # normalize values from pid to be between 50 to 255
 def normalize(input, min_value, max_value, cut_off):
     if DEBUG_MODE:
@@ -44,7 +70,8 @@ def normalize(input, min_value, max_value, cut_off):
     if input < 0:
         norm = -norm
     return norm
-
+'''
+# End
 
 DEBUG = True
 template = cv2.imread("smaller2Temp.png",0)
@@ -89,7 +116,8 @@ frame = raw.array
 raw.truncate(0)
 
 
-
+# Ofri
+'''
 #   PID
 stepper_mode = True
 dc_normalize = True
@@ -111,7 +139,8 @@ dc_pid = PID(Kp, Ki, Kd)
 dc_pid.SetPoint = 0
 dc_motor = Arduino_BT_DC()
 #pid.setWindup(!!!!!!!!!!);
-
+'''
+# End
 
 
 
@@ -295,9 +324,13 @@ try:
             
         if type(c) == int:
             cv2.putText(frame, "FAIL", (50,100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
+            # Ofri
+            '''
             # PID
             if not stepper_mode:
                 dc_motor.move(0)
+            '''
+            # End
                 
         else:
                 #cv2.drawContours(frame,c,-1,(0,255,0),1)
@@ -308,6 +341,8 @@ try:
             pos_from_mid = (a[0]-center[0], a[1]-center[1])
             if DEBUG_MODE or SERVO_DEBUG_MODE or STEPPER_DEBUG_MODE:
                 print("pos=(" + str(pos_from_mid[0]) + ", " + str(pos_from_mid[1]) + ")")#str(a[0]) + ", " + str(a[1]))
+            # Ofri
+            '''
             # PID
           #  servo.do_step(-pos_from_mid[1]*ratio)#motor
             dc_pid.update(pos_from_mid[0])
@@ -315,7 +350,18 @@ try:
             if dc_normalize:
                 dc_output = normalize(dc_output, min_value, max_value, cut_off)
             dc_motor.move(dc_output)
-            
+            '''
+            #print('Ready?')
+            #raw_input()
+            ofriflag += 1
+            if (ofriflag == 20):
+                ofriflag = 0
+                stepper_motor.rotate(-pixels_to_degrees(pos_from_mid[0], X))
+                print('Good?')
+            #raw_input() # for debugging
+
+
+            # End
             cv2.line(frame,((int)(a[0]),(int)(a[1])),((int)(len(frame[0])/2),(int)(len(frame)/2)),(0,255,0),1)
                          
                # box = cv2.boxPoints(rect)
@@ -340,11 +386,11 @@ try:
         k = cv2.waitKey(1) & 0xff
         if k == 27 :
             print("Exit")
-            dc_motor.cleanup()#motor
+            stepper_motor.cleanup()#motor
             #servo.servo.cleanup()#motor
             break;
             
 except KeyboardInterrupt:
         print("Exit")
-        dc_motor.cleanup()
+        stepper_motor.cleanup()
        # servo.servo.cleanup()#motorcton

@@ -3,7 +3,6 @@ from Arduino_Stepper import Arduino_BT_Stepper
 import select
 import threading
 import math
-
 looping = True
 
 class StepperThread(threading.Thread):
