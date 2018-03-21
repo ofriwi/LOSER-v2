@@ -6,6 +6,7 @@ const bool DEBUG_MODE = true;
 bool new_input = false;
 int motorSpeed = 0;
 
+
 // *** Stepper ***
 const int stepsPerRevolution = 400;
 Stepper myStepper(stepsPerRevolution, 4, 5, 6, 7);
