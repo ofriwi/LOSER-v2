@@ -2,12 +2,9 @@
 #include <SoftwareSerial.h>
 #include <Stepper.h>
 
-bool input = false;
-float dist;
-Stepper myStepper(stepsPerRevolution, 4, 5, 6, 7);
-
 //motor
 const int stepsPerRevolution = 720;
+Stepper myStepper(stepsPerRevolution, 4, 5, 6, 7);
 
 //photomafsek
 const int rightPin = A3;
@@ -23,7 +20,6 @@ int current_time[2] = {0,0}, last_loop[2] = {0,0};
 //For the Gyro
 MPU9250 myIMU;
 float gyro_val = 0.0;
-float theta = 0.0;
 int send_time = 0;
 
 //sending to pi
@@ -34,6 +30,7 @@ bool newData = false;
 
 //BT
 SoftwareSerial bt (2, 4);
+bool updateInitials = false;
 const char END_OF_DIST = 'd';
 const char END_OF_ANG = 'a';
 const char UPDATE_INITIALS = 'u';
@@ -141,10 +138,11 @@ void loop() {
      else{ //updating the location based on the last info about the location (the last LOS)
       dt = millis() - myIMU.count;
       theta += gyro_ang_vel*dt;
-      my_x += sensor_vel*cos(theta*math.PI/180)*dt;
-      my_y += sensor_vel*sin(theta*math.PI/180)*dt;
-      float new_cam_angle = theta + math.atan2((-1.0*y),(target_x-x))*180/math.PI;
-      float send_angle = cam_angle-new_cam_angle; //the sending value (addition to the original angle)
+      my_x += sensor_vel*cos(theta*PI/180)*dt;
+      my_y += sensor_vel*sin(theta*PI/180)*dt;
+      float new_cam_angle = theta + atan2((-1.0*my_y),(target_x-my_x))*180/PI;
+      myStepper.step(2*(new_cam_angle-cam_angle)); //the sending value (addition to the original angle)
+      cam_angle = new_cam_angle;
      }
     myIMU.count = millis();
     /**myIMU.delt_t = millis() - myIMU.count;
