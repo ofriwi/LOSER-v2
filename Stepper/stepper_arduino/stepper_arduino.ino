@@ -4,11 +4,11 @@
 // *** General ***
 const bool DEBUG_MODE = true;
 bool new_input = false;
-bool use_bt = true;
-int motorSpeed = 20; // TODO: optimize
+bool use_bt = false;
+int motorSpeed = 30; // TODO: optimize
 
 // *** Stepper ***
-const int stepsPerRevolution = 400;
+const int stepsPerRevolution = 400; // TODO: choose
 Stepper myStepper(stepsPerRevolution, 4, 5, 6, 7);
 float degCount = 0;
 
@@ -43,7 +43,7 @@ void loop() {
       new_input = true;
     }
   }else{
-    if (Serial.available() > 0) { 
+    if (Serial.available() > 0) {
       usr_input = (int)Serial.parseInt();
       delay(SER_WAIT_TIME);
       while(Serial.available()) Serial.read();
