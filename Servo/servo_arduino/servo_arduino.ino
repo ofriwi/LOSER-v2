@@ -37,10 +37,13 @@ void loop() {
         Serial.println("Starting/Stopping.");
     }
     current += input;
+    current = max(current, min_deg);
+    current = min(current, max_deg);
     if (DEBUG_MODE){
       Serial.print("New input: ");Serial.println(input);
       Serial.print("New position: ");Serial.println(current);
     }
     myservo.write(current);
-    delay(wait);
+    delay(motor_delay);
+  }
 }
