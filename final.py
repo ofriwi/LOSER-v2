@@ -1,19 +1,27 @@
-from picamera.array import PiRGBArray
-from picamera import PiCamera
-import time
+import time, datetime
+from math import atan, degrees, radians, tan
+
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy
-from keras.models import load_model
-import matplotlib.pyplot as plt
-
-from Constants import *
 # Ofri
 from Arduino_Stepper import Arduino_BT_Stepper
-from math import tan, degrees, radians, atan
+from Constants import *
+from keras.models import load_model
+from picamera import PiCamera
+from picamera.array import PiRGBArray
 
+# *** Partial mode ***
+partial_mode = True
 RPM = 20
 deg_time = 1.0 / (RPM * 6.0) * 1000
+movement_end_time = datetime.datetime.now() 
+movement_start_time = datetime.datetime.now()
+movement_end_time = datetime.datetime.now()
+direction = 1
+
+sign = lambda a: (a>0) - (a<0)
 
 X = 0
 Y = 1
@@ -219,10 +227,16 @@ try:
             #raw_input()
             ofriflag += 1
             if (ofriflag == 1):
+                now_time = datetime.datetime.now() # Partial
+                deg_moved = 0 # Partial
+                if partial_mode and now_time < movement_end_time: # Partial
+                    deg_moved = direction * round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time) # Partial
                 ofriflag = 0
-                deg_to_move = pixels_to_degrees(pos_from_mid[0], X)
+                deg_to_move = pixels_to_degrees(pos_from_mid[0], X) - deg_moved # Partial : - deg_moved
+                direction = sign(deg_to_move) # Partial
                 stepper_motor.rotate(deg_to_move)
-                movement_end_time = datetime.time.now() + timedelta(microseconds=round(deg_to_move * deg_time))
+                movement_start_time = datetime.datetime.now() # Partial
+                movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(deg_to_move * deg_time * 1000))) # Partial
                 print('Good?')
             #raw_input() # for debugging
 
