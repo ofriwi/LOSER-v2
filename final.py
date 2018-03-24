@@ -12,6 +12,9 @@ from Constants import *
 from Arduino_Stepper import Arduino_BT_Stepper
 from math import tan, degrees, radians, atan
 
+RPM = 20
+deg_time = 1.0 / (RPM * 6.0) * 1000
+
 X = 0
 Y = 1
 
@@ -35,7 +38,7 @@ def pixels_to_degrees(pixels, axis):
 pNum = 1
 
 
-model1 = load_model("netFinalTotSatMor.h5")
+model1 = load_model("netNoHidden2000.h5")
 #model2= load_model("net2.h5")
 #model3 = load_model("zulzul.h5")
 
@@ -76,7 +79,7 @@ center = (500/2,250/2)
 cam.awb_gains=[1.3,1.3]
 cam.rotation = 270
 #cam.vflip = False
-cam.hflip = True
+cam.hflip = False
 #cam.exposure_mode = 'sports'
 #cam.framerate = 20
 cam.shutter_speed = 5000 #33186
@@ -109,8 +112,11 @@ kernal1 = np.ones((1,1),np.uint8)
 
 try:
     for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
-      
+        # Ofri
         
+        shoot_time = datetime.time.now()
+        
+        # End
         frame =  fram.array
         
         timer = cv2.getTickCount()
@@ -187,7 +193,7 @@ try:
                         predict = (model1.predict(imArr))                     
                     cv2.waitKey(1)
                     print(predict)
-                    if predict >0:                  
+                    if predict > 0.2:                  
                         #print("Net1: "+str(predict[0])+"    Net2: "+str(predict[1])+"    zulzul: "+str(predict[2]))                      
                         if predict > maxPred:
                             c = con
@@ -212,9 +218,11 @@ try:
             #print('Ready?')
             #raw_input()
             ofriflag += 1
-            if (ofriflag == 3):
+            if (ofriflag == 1):
                 ofriflag = 0
-                stepper_motor.rotate(pixels_to_degrees(pos_from_mid[0], X))
+                deg_to_move = pixels_to_degrees(pos_from_mid[0], X)
+                stepper_motor.rotate(deg_to_move)
+                movement_end_time = datetime.time.now() + timedelta(microseconds=round(deg_to_move * deg_time))
                 print('Good?')
             #raw_input() # for debugging
 
