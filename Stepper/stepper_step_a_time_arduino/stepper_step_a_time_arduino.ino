@@ -4,8 +4,8 @@
 // *** General ***
 const bool DEBUG_MODE = true;
 bool new_input = false;
-bool use_bt = false;
-int motorSpeed = 30; // TODO: optimize
+bool use_bt = true;
+int motorSpeed = 20; // TODO: optimize
 
 // *** Stepper ***
 const int stepsPerRevolution = 400; // TODO: choose
@@ -22,6 +22,7 @@ const int BT_WAIT_TIME = 3, SER_WAIT_TIME = 1; // TODO : optimize
 // *** Position ***
 int current = 0;
 int target = 0;
+bool cur_direction = true;
 
 void setup() {
   if (use_bt){
@@ -75,6 +76,10 @@ void set_target(int degrees){
 
 void move(){
     int steps = 0;
+    if (cur_direction != (target > current)){
+      delay(100);
+      cur_direction = target>current;
+    }
     if (target > current){
         steps = min(target - current, STEPS_A_TIME);
     } else if (target < current){
@@ -82,4 +87,5 @@ void move(){
     }
     myStepper.step(steps);
     degCount += 360.0 / stepsPerRevolution * steps;
+    current += steps;
 }

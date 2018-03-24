@@ -35,7 +35,7 @@ def pixels_to_degrees(pixels, axis):
 pNum = 1
 
 
-model1 = load_model("netFinalTot.h5")
+model1 = load_model("netFinalTotSatMor.h5")
 #model2= load_model("net2.h5")
 #model3 = load_model("zulzul.h5")
 
@@ -124,7 +124,7 @@ try:
      
         # l = np.array([40,10,190]) #good
         # u = np.array([100,200,220]) # good
-        l = np.array([40,40,170]) #good
+        l = np.array([40,30,170]) #good
         u = np.array([100,200,220]) # good
         mask = cv2.inRange(hsv,l,u)
         
@@ -157,8 +157,6 @@ try:
                 
                 if w!=0 and h!=0 and w*h > 400 and float(w)/ h < 1.5 and float(w)/ h > 0.1:
                     roi= crop_rect(frame,rect)
-                    cv2.imwrite("newpos/"+str(pNum)+".png",roi)
-                    pNum=pNum + 1
                  #   roi = crop_rect(frame,(rect[0],(rect[1][0]*1.5,rect[1][1]*1.5),rect[2]))
                   
                     
@@ -189,7 +187,7 @@ try:
                         predict = (model1.predict(imArr))                     
                     cv2.waitKey(1)
                     print(predict)
-                    if predict >0.5:                  
+                    if predict >0:                  
                         #print("Net1: "+str(predict[0])+"    Net2: "+str(predict[1])+"    zulzul: "+str(predict[2]))                      
                         if predict > maxPred:
                             c = con
@@ -207,15 +205,14 @@ try:
            
             cv2.line(frame,((int)(a[0]),(int)(a[1])),((int)(len(frame[0])/2),(int)(len(frame)/2)),(0,255,0),1)
             cv2.drawContours(frame,[np.int0(cv2.boxPoints(rect))],0,[0,255,0],2)
-            cv2.imwrite("newpos/"+str(pNum)+".png",roiToSave)
-            pNum=pNum + 1
+            
             
             
             # Ofri
             #print('Ready?')
             #raw_input()
             ofriflag += 1
-            if (ofriflag == 1):
+            if (ofriflag == 3):
                 ofriflag = 0
                 stepper_motor.rotate(pixels_to_degrees(pos_from_mid[0], X))
                 print('Good?')
