@@ -21,15 +21,15 @@ Y = 1
 
 stepper_motor = Arduino_BT_Stepper()
 
-ofriflag = True
+ofriflag = 0
 
 def pixels_to_degrees(pixels, axis):
     if axis == X:
         px_width = 512.0 ########## CHANGE
-        deg_width = 62.2
+        deg_width = 53.5#####
     if axis == Y:
         px_width = 256.0 ########### CHANGE
-        deg_width = 48.8
+        deg_width = 41.41######
     alpha = degrees(atan(float(pixels) * tan(radians(deg_width / 2))*2/px_width)) # Trigo
     # alpha = float(pixels) * deg_width / px_width
     return round(alpha)
@@ -354,9 +354,9 @@ try:
             #print('Ready?')
             #raw_input()
             ofriflag += 1
-            if (ofriflag == 20):
+            if (ofriflag == 5):
                 ofriflag = 0
-                stepper_motor.rotate(-pixels_to_degrees(pos_from_mid[0], X))
+                stepper_motor.rotate(pixels_to_degrees(pos_from_mid[0], X))
                 print('Good?')
             #raw_input() # for debugging
 

@@ -4,8 +4,8 @@
 // *** General ***
 const bool DEBUG_MODE = true;
 bool new_input = false;
-bool use_bt = false;
-int motorSpeed = 30; // TODO: optimize
+bool use_bt = true;
+int motorSpeed = 20; // TODO: optimize
 
 // *** Stepper ***
 const int stepsPerRevolution = 400; // TODO: choose
