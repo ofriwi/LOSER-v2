@@ -14,8 +14,10 @@ from picamera.array import PiRGBArray
 
 # *** Partial mode ***
 partial_mode = True
+disable_mode = True
 RPM = 20
 deg_time = 1.0 / (RPM * 6.0) * 1000
+send_time = 100
 movement_end_time = datetime.datetime.now() 
 movement_start_time = datetime.datetime.now()
 movement_end_time = datetime.datetime.now()
@@ -33,7 +35,7 @@ ofriflag = 0
 def pixels_to_degrees(pixels, axis):
     if axis == X:
         px_width = 512.0 ########## CHANGE
-        deg_width = 53.5#####
+        deg_width = 50.0#####
     if axis == Y:
         px_width = 256.0 ########### CHANGE
         deg_width = 41.41######
@@ -46,8 +48,8 @@ def pixels_to_degrees(pixels, axis):
 pNum = 1
 
 
-model1 = load_model("netNoHidden2000.h5")
-#model2= load_model("net2.h5")
+model1 = load_model("net1.h5")
+model2= load_model("netNoHidden10000.h5")
 #model3 = load_model("zulzul.h5")
 
 timeArr = []
@@ -83,6 +85,8 @@ cam = PiCamera()
 
 cam.resolution=(500,250)#300150500250
 center = (500/2,250/2)
+cam.resolution=(512,256)#300150500250
+center = (512/2,256/2)
 
 cam.awb_gains=[1.3,1.3]
 cam.rotation = 270
@@ -122,7 +126,7 @@ try:
     for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
         # Ofri
         
-        shoot_time = datetime.time.now()
+        shoot_time = datetime.datetime.now()
         
         # End
         frame =  fram.array
@@ -138,13 +142,15 @@ try:
      
         # l = np.array([40,10,190]) #good
         # u = np.array([100,200,220]) # good
-        l = np.array([40,30,170]) #good
+        l = np.array([40,40,130]) #good
+        u = np.array([100,200,220]) # good
+        l = np.array([40,40,170]) #good
         u = np.array([100,200,220]) # good
         mask = cv2.inRange(hsv,l,u)
         
         
         mask = cv2.erode(mask,kernal1, iterations = 1)
-        mask = cv2.dilate(mask,kernal, iterations = 2)
+        mask = cv2.dilate(mask,kernal, iterations = 4)
         
         
         frame = (255-frame)
@@ -169,7 +175,7 @@ try:
                 HEIGHT=rect[1][0]
                 ANGLE = rect[2]
                 
-                if w!=0 and h!=0 and w*h > 400 and float(w)/ h < 1.5 and float(w)/ h > 0.1:
+                if w!=0 and h!=0 and w*h > 400 and float(w)/ h < 1.5 and float(w)/ h > 0.5:
                     roi= crop_rect(frame,rect)
                  #   roi = crop_rect(frame,(rect[0],(rect[1][0]*1.5,rect[1][1]*1.5),rect[2]))
                   
@@ -187,21 +193,30 @@ try:
                     if roi is not None :
                         lstTemp = []
                         
-                        roi=cv2.cvtColor(roi,cv2.COLOR_BGR2GRAY)
-                        roi = cv2.resize(roi,(30,45))
                      
-                        roi_flat = np.asarray([pix for pix in roi])
-                        roi = roi-roi.mean()
-                        roi = roi / np.std(roi)
-                        lstTemp.append(roi)
+                        roi=cv2.cvtColor(roi,cv2.COLOR_BGR2GRAY)
+                        roi2 = cv2.resize(roi,(30,45))
+                        roi1 = cv2.resize(roi,(20,20))
+                        
+                        
+                       # roi = roi-roi.mean()
+                       # roi = roi / np.std(roi)
+                        lstTemp.append(roi1)
                         imArr = np.array(lstTemp)
                         imArr = imArr.reshape((1, -1))
                         
                         
-                        predict = (model1.predict(imArr))                     
+                        predict = (model1.predict(imArr))
+                        roi2 = roi2-roi2.mean()
+                        roi2 = roi2 / np.std(roi2)
+                        lstTemp=[]
+                        lstTemp.append(roi2)
+                        imArr = np.array(lstTemp)
+                        imArr = imArr.reshape((1, -1))
+                        predict2 = model2.predict(imArr)
                     cv2.waitKey(1)
-                    print(predict)
-                    if predict > 0.2:                  
+                    print(str(predict)+ ", " + str(predict2))
+                    if predict > 0.95 and predict2 > 0.1:                  
                         #print("Net1: "+str(predict[0])+"    Net2: "+str(predict[1])+"    zulzul: "+str(predict[2]))                      
                         if predict > maxPred:
                             c = con
@@ -229,15 +244,23 @@ try:
             if (ofriflag == 1):
                 now_time = datetime.datetime.now() # Partial
                 deg_moved = 0 # Partial
-                if partial_mode and now_time < movement_end_time: # Partial
-                    deg_moved = direction * round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time) # Partial
+                if not disable_mode and partial_mode and shoot_time < movement_end_time: # Partial
+                    print('Still moving')
+                    deg_moved = direction * round(min(max(0, (now_time - movement_start_time).total_seconds()), (movement_end_time - movement_start_time).total_seconds(), (now_time - shoot_time).total_seconds(), (movement_end_time - shoot_time).total_seconds()) * 1000.0 / deg_time) # Partial
+                    print(deg_moved)
+                    print('shoot to end=' + str(round((movement_end_time - shoot_time).total_seconds() * 1000.0 / deg_time))) # Partial
+                    print('shoot to now=' + str(round((now_time - shoot_time).total_seconds() * 1000.0 / deg_time))) # Partial
+                    print('start to end=' + str(round((movement_end_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
+                    print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
                 ofriflag = 0
                 deg_to_move = pixels_to_degrees(pos_from_mid[0], X) - deg_moved # Partial : - deg_moved
-                direction = sign(deg_to_move) # Partial
-                stepper_motor.rotate(deg_to_move)
-                movement_start_time = datetime.datetime.now() # Partial
-                movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(deg_to_move * deg_time * 1000))) # Partial
-                print('Good?')
+                if disable_mode and shoot_time > movement_end_time:
+                    print('to move: ' + str(deg_to_move+deg_moved) + 'move more: ' + str(deg_to_move))
+                    direction = sign(deg_to_move) # Partial
+                    stepper_motor.rotate(deg_to_move)
+                    movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
+                    movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(deg_to_move * deg_time * 1000))) # Partial
+                    print('Good?')
             #raw_input() # for debugging
 
 
@@ -248,7 +271,8 @@ try:
         
 
         if DEBUG:
-            cv2.putText(frame, "FPS : " + str(int(fps)), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (50,170,50), 1)
+            cv2.putText(frame, "fps : " + str(int(fps)), (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (50,170,50), 1)
+     
      
       # i frame = cv2.resize(frame,(640,480))
         cv2.imshow("Tracking", frame)
@@ -263,6 +287,7 @@ try:
         if k == 27 :
             
             print("Exit")
+            stepper_motor.cleanup()
            # stepper.stepper.cleanup()#motor
           #  servo.servo.cleanup()#motor
             break;
@@ -270,7 +295,8 @@ try:
 except KeyboardInterrupt:
         raw.truncate(0)
         print("Exit")
-        plt.plot(timeArr)
-        plt.show()
+        stepper_motor.cleanup()
+        #plt.plot(timeArr)
+        #plt.show()
        # stepper.stepper.cleanup()#motor
        # servo.servo.cleanup()#motor
