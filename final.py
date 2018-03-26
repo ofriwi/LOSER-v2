@@ -158,9 +158,12 @@ try:
         frame = (255-frame)
         masked = cv2.bitwise_and(frame,frame,mask=mask)
    #     cv2.circle(frame, center, 3, l)
-        cv2.imshow("masked", masked)
-        im2, contours, hierarchy = cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        '''try:
+            cv2.imshow("masked", masked)
         
+        except Exception:
+            print(RED+'unable to show images' + NORMAL)'''
+        im2, contours, hierarchy = cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         c = 0
         rect = 0
         if len(contours) > 0:
@@ -188,9 +191,11 @@ try:
                   #      continue
 #                  
                     predict = 0
-                    
-                    cv2.imshow("roig",roi)
-                    cv2.waitKey(1)
+                    '''try:
+                        cv2.imshow("roig",roi)
+                        cv2.waitKey(1)
+                    except Exception:
+                        print(RED+'unable to show images' + NORMAL)'''
                     roiToSave = roi
                     if roi is not None :
                         lstTemp = []
@@ -217,7 +222,7 @@ try:
                         imArr = imArr.reshape((1, -1))
                         predict2 = model2.predict(imArr)
                     cv2.waitKey(1)
-                    print(str(predict)+ ", " + str(predict2))
+                    #print(str(predict)+ ", " + str(predict2))
                     if predict > 0.999 and predict2 > 0.001:                  
                         #print("Net1: "+str(predict[0])+"    Net2: "+str(predict[1])+"    zulzul: "+str(predict[2]))                      
                         if predict > maxPred:
@@ -231,8 +236,8 @@ try:
             rect = cv2.minAreaRect(c) #### NEW 
             a = rect[0]
             pos_from_mid = (a[0]-center[0], a[1]-center[1])
-            if DEBUG_MODE or SERVO_DEBUG_MODE or STEPPER_DEBUG_MODE:
-                print("pos=(" + str(pos_from_mid[0]) + ", " + str(pos_from_mid[1]) + ")")#str(a[0]) + ", " + str(a[1]))
+            #if DEBUG_MODE or SERVO_DEBUG_MODE or STEPPER_DEBUG_MODE:
+            #    print("pos=(" + str(pos_from_mid[0]) + ", " + str(pos_from_mid[1]) + ")")#str(a[0]) + ", " + str(a[1]))
            
             cv2.line(frame,((int)(a[0]),(int)(a[1])),((int)(len(frame[0])/2),(int)(len(frame)/2)),(0,255,0),1)
             cv2.drawContours(frame,[np.int0(cv2.boxPoints(rect))],0,[0,255,0],2)
@@ -257,20 +262,20 @@ try:
                 ofriflag = 0
                 deg_to_move = pixels_to_degrees(pos_from_mid[0], X) - deg_moved # Partial : - deg_moved
                 if disable_mode and shoot_time > movement_end_time:
-                    print('to move: ' + str(deg_to_move+deg_moved) + 'move more: ' + str(deg_to_move))
+                    #print('to move: ' + str(deg_to_move+deg_moved) + 'move more: ' + str(deg_to_move))
                     direction = sign(deg_to_move) # Partial
                     stepper_motor.rotate(deg_to_move)
                     
                     #### TODO : L delete
                     x_height = len(roi)
                     distance = 8667*pow(x_height,-0.8693) / 100.0
-                    print(round(abs(distance)))
+                    #print(round(abs(distance)))
                     ####
                     
                     stepper_motor.send_distance(distance)
                     movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
                     movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(deg_to_move * deg_time * 1000))) # Partial
-                    print('Good?')
+                    #print('Good?')
             #raw_input() # for debugging
 
 
@@ -283,14 +288,16 @@ try:
         if DEBUG:
             cv2.putText(frame, "fps : " + str(int(fps)), (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (50,170,50), 1)
      
-     
-      # i frame = cv2.resize(frame,(640,480))
-        cv2.imshow("Tracking", frame)
-        #cv2.imshow("masked2", maskbgr)
-        #cv2.imshow("masked3", hsvbgr)
-        cv2.imshow("masked", masked)
-      #  cv2.imshow("masked2", maskedbgr)
-
+        '''try:
+          # i frame = cv2.resize(frame,(640,480))
+            cv2.imshow("Tracking", frame)
+            #cv2.imshow("masked2", maskbgr)
+            #cv2.imshow("masked3", hsvbgr)
+            cv2.imshow("masked", masked)
+          #  cv2.imshow("masked2", maskedbgr)
+        except Exception:
+            print(RED+'unable to show images' + NORMAL)'''
+            
         raw.truncate(0)
             # Exit if ESC pressed
         k = cv2.waitKey(1) & 0xff

@@ -16,6 +16,7 @@ class Arduino_Servo:
         self.ser.open()
         sleep(2)
         self.goto_mid()
+        print(GREEN + 'Servo connection acquired' + NORMAL)
 
     # Rotate Servo
     def rotate(self, rel_angle):

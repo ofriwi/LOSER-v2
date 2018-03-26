@@ -26,6 +26,7 @@ movement_end_time = datetime.datetime.now()
 direction = 1
 
 sign = lambda a: (a>0) - (a<0)
+frame_num = 0
 
 # *** Stepper ***
 
@@ -117,8 +118,14 @@ hog = get_hog()
 kernal = np.ones((3,3),np.uint8)
 kernal1 = np.ones((1,1),np.uint8)
 
+
+print(GREEN + 'Run started!' + NORMAL)
 for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
     # Ofri
+    frame_num += 1
+    if frame_num == 100:
+        print('100 frames reached')
+        frame_num = 0
     shoot_time = datetime.datetime.now()    
     # End
 
@@ -202,14 +209,11 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
         stepper_to_move = pixels_to_degrees(pos_from_mid[X], X) - deg_moved # Partial : - deg_moved
         # Servo servo_to_move = pixels_to_degrees(pos_from_mid[Y], Y)
         if disable_mode and shoot_time > movement_end_time or not disable_mode:
-            print('to move: ' + str(stepper_to_move+deg_moved) + 'move more: ' + str(stepper_to_move))
+            #print('to move: ' + str(stepper_to_move+deg_moved) + 'move more: ' + str(stepper_to_move))
             direction = sign(stepper_to_move) # Partial
             stepper_motor.rotate(stepper_to_move)
             # Servo servo_motor.rotate(servo_to_move)
 
-            if DEBUG_MODE:
-                print('Distance = ' + str(round(abs(distance)) / 10.0))
-            
             stepper_motor.send_distance(distance)
             movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
             movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(stepper_to_move * deg_time * 1000))) # Partial

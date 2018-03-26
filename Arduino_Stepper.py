@@ -11,6 +11,7 @@ class Arduino_BT_Stepper:
     def __init__(self, bd_addr=STEPPER_BT_ADDR, port=STEPPER_BT_PORT):                
         self.sock = bluetooth.BluetoothSocket (bluetooth.RFCOMM)
         self.sock.connect((bd_addr,port))
+        print(GREEN + 'BT connection acquired' + NORMAL)
 
     # Rotate Stepper
     def rotate(self, rel_angle):
