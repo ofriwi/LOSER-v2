@@ -85,7 +85,7 @@ void set_target(int degrees){
 void move(){
     int steps = 0;
     if (cur_direction != (target > current)){
-      delay(100);
+      delay(2);
       cur_direction = target>current;
     }
     if (target > current){

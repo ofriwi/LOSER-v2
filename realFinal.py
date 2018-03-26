@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import time, datetime
 from math import atan, degrees, radians, tan
 from Arduino_Stepper import Arduino_BT_Stepper
+from Arduino_Servo import Arduino_Servo
 from Constants import *
 
 
@@ -32,7 +33,7 @@ X = 0
 Y = 1
 
 stepper_motor = Arduino_BT_Stepper()
-
+# Servo servo_motor = Arduino_Servo()
 
 def pixels_to_degrees(pixels, axis):
     if axis == X:
@@ -198,18 +199,20 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
             print('start to end=' + str(round((movement_end_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
             print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
         #ofriflag = 0
-        deg_to_move = pixels_to_degrees(pos_from_mid[0], X) - deg_moved # Partial : - deg_moved
-        if disable_mode and shoot_time > movement_end_time:
-            print('to move: ' + str(deg_to_move+deg_moved) + 'move more: ' + str(deg_to_move))
-            direction = sign(deg_to_move) # Partial
-            stepper_motor.rotate(deg_to_move)
-            
+        stepper_to_move = pixels_to_degrees(pos_from_mid[X], X) - deg_moved # Partial : - deg_moved
+        # Servo servo_to_move = pixels_to_degrees(pos_from_mid[Y], Y)
+        if disable_mode and shoot_time > movement_end_time or not disable_mode:
+            print('to move: ' + str(stepper_to_move+deg_moved) + 'move more: ' + str(stepper_to_move))
+            direction = sign(stepper_to_move) # Partial
+            stepper_motor.rotate(stepper_to_move)
+            # Servo servo_motor.rotate(servo_to_move)
+
             if DEBUG_MODE:
                 print('Distance = ' + str(round(abs(distance)) / 10.0))
             
             stepper_motor.send_distance(distance)
             movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
-            movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(deg_to_move * deg_time * 1000))) # Partial
+            movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(stepper_to_move * deg_time * 1000))) # Partial
             
 
     #else NO DETECTION
