@@ -5,7 +5,48 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Ofri
 
+import time, datetime
+from math import atan, degrees, radians, tan
+from Arduino_Stepper import Arduino_BT_Stepper
+from Constants import *
+
+
+# *** Partial mode ***
+partial_mode = True
+disable_mode = True
+RPM = 20
+deg_time = 1.0 / (RPM * 6.0) * 1000
+send_time = 50
+movement_end_time = datetime.datetime.now() 
+movement_start_time = datetime.datetime.now()
+movement_end_time = datetime.datetime.now()
+direction = 1
+
+sign = lambda a: (a>0) - (a<0)
+
+# *** Stepper ***
+
+X = 0
+Y = 1
+
+stepper_motor = Arduino_BT_Stepper()
+
+
+def pixels_to_degrees(pixels, axis):
+    if axis == X:
+        px_width = 512.0 ########## CHANGE
+        deg_width = 50.0#####
+    if axis == Y:
+        px_width = 256.0 ########### CHANGE
+        deg_width = 41.41######
+    alpha = degrees(atan(float(pixels) * tan(radians(deg_width / 2))*2/px_width)) # Trigo
+    # alpha = float(pixels) * deg_width / px_width
+    return round(alpha)
+
+
+# End
 model = cv2.ml.SVM_load("SVM.dat")
 
 timeArr = []
@@ -48,8 +89,8 @@ def crop_rect(img,rect):
 
 cam = PiCamera()
 
-cam.resolution=(500,250)#300150500250
-center = (500/2,250/2)
+cam.resolution=(512,256)#300150500250
+center = (512/2,256/2)
 
 cam.awb_gains=[1.3,1.3]
 #cam.rotation = 270
@@ -66,25 +107,6 @@ frame = raw.array
 
 raw.truncate(0)
 
-
-
-#   PID
-P = 0.13
-I = 0.0
-D = 0.0
-#servo = servo_pid(P, I, D, 0) #motor
-
-
-#P = 0.1
-#I = 0.06#-0.07
-#D = 0.03
-
-P = 0.13
-I = 0.003
-D = 0.02
-#stepper = stepper_pid(P, I, D, 0) #motor
-# deg to pixel ratio
-ratio=1#/3.0
 x_height=1
 predict=0
 predict2=0
@@ -95,6 +117,10 @@ kernal = np.ones((3,3),np.uint8)
 kernal1 = np.ones((1,1),np.uint8)
 
 for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
+    # Ofri
+    shoot_time = datetime.datetime.now()    
+    # End
+
     raw.truncate(0)
     timer = cv2.getTickCount()
     frame =  fram.array       
@@ -156,7 +182,36 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
         rect = cv2.minAreaRect(c)
         a = rect[0]
         pos_from_mid = (a[0]-center[0], a[1]-center[1])
-        distance = 8667*pow(x_height,-0.8693)
+        distance = 86.67*pow(x_height,-0.8693)
+
+        # Ofri
+        #ofriflag += 1
+        #if (ofriflag == 1):
+        now_time = datetime.datetime.now() # Partial
+        deg_moved = 0 # Disable mode
+        if not disable_mode and partial_mode and shoot_time < movement_end_time: # Partial
+            print('Still moving')
+            deg_moved = direction * round(min(max(0, (now_time - movement_start_time).total_seconds()), (movement_end_time - movement_start_time).total_seconds(), (now_time - shoot_time).total_seconds(), (movement_end_time - shoot_time).total_seconds()) * 1000.0 / deg_time) # Partial
+            print(deg_moved)
+            print('shoot to end=' + str(round((movement_end_time - shoot_time).total_seconds() * 1000.0 / deg_time))) # Partial
+            print('shoot to now=' + str(round((now_time - shoot_time).total_seconds() * 1000.0 / deg_time))) # Partial
+            print('start to end=' + str(round((movement_end_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
+            print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
+        #ofriflag = 0
+        deg_to_move = pixels_to_degrees(pos_from_mid[0], X) - deg_moved # Partial : - deg_moved
+        if disable_mode and shoot_time > movement_end_time:
+            print('to move: ' + str(deg_to_move+deg_moved) + 'move more: ' + str(deg_to_move))
+            direction = sign(deg_to_move) # Partial
+            stepper_motor.rotate(deg_to_move)
+            
+            if DEBUG_MODE:
+                print('Distance = ' + str(round(abs(distance)) / 10.0))
+            
+            stepper_motor.send_distance(distance)
+            movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
+            movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(deg_to_move * deg_time * 1000))) # Partial
+            
+
     #else NO DETECTION
   
          
