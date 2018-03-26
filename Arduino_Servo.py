@@ -20,6 +20,8 @@ class Arduino_Servo:
 
     # Rotate Servo
     def rotate(self, rel_angle):
+        if (DEBUG_MODE or SERVO_DEBUG_MODE):
+            print('Servo turn ' + str(rel_angle))
         rel_angle += offset
         self.ser.write(struct.pack('>B', rel_angle))
         #self.sock.send(rel_angle)#struct.pack('>i', abs(rel_angle)))

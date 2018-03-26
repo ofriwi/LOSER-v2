@@ -7,13 +7,14 @@ import numpy as np
 import scipy
 # Ofri
 from Arduino_Stepper import Arduino_BT_Stepper
+from Arduino_Servo import Arduino_Servo
 from Constants import *
 from keras.models import load_model
 from picamera import PiCamera
 from picamera.array import PiRGBArray
 
 use_screen = True
-
+magic_number = 0.4
 # *** Partial mode ***
 partial_mode = True
 disable_mode = True
@@ -30,7 +31,8 @@ sign = lambda a: (a>0) - (a<0)
 X = 0
 Y = 1
 
-stepper_motor = Arduino_BT_Stepper()
+#step Stepper stepper_motor = Arduino_BT_Stepper()
+servo_motor = Arduino_Servo()
 
 ofriflag = 0
 
@@ -259,10 +261,14 @@ try:
                     print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
                 ofriflag = 0
                 deg_to_move = pixels_to_degrees(pos_from_mid[0], X) - deg_moved # Partial : - deg_moved
+                servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y)
+                
+                
+                servo_motor.rotate(servo_to_move)
                 if disable_mode and shoot_time > movement_end_time:
                     #print('to move: ' + str(deg_to_move+deg_moved) + 'move more: ' + str(deg_to_move))
                     direction = sign(deg_to_move) # Partial
-                    stepper_motor.rotate(deg_to_move)
+                    # Stepper stepper_motor.rotate(deg_to_move)
                     
                     #### TODO : L delete
                     x_height = len(roi)
@@ -270,7 +276,7 @@ try:
                     #print(round(abs(distance)))
                     ####
                     
-                    stepper_motor.send_distance(distance)
+                    # Stepper stepper_motor.send_distance(distance)
                     movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
                     movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(deg_to_move * deg_time * 1000))) # Partial
                     #print('Good?')
@@ -301,6 +307,7 @@ try:
             
             print("Exit")
             stepper_motor.cleanup()
+            servo_motor.cleanup()
            # stepper.stepper.cleanup()#motor
           #  servo.servo.cleanup()#motor
             break;
@@ -309,6 +316,7 @@ except KeyboardInterrupt:
         raw.truncate(0)
         print("Exit")
         stepper_motor.cleanup()
+        servo_motor.cleanup()
         #plt.plot(timeArr)
         #plt.show()
        # stepper.stepper.cleanup()#motor

@@ -13,6 +13,8 @@ from Arduino_Stepper import Arduino_BT_Stepper
 from Arduino_Servo import Arduino_Servo
 from Constants import *
 
+use_screen = True
+magic_number = 0.4 # Magic number is P of servo
 
 # *** Partial mode ***
 partial_mode = True
@@ -33,8 +35,8 @@ frame_num = 0
 X = 0
 Y = 1
 
-stepper_motor = Arduino_BT_Stepper()
-# Servo servo_motor = Arduino_Servo()
+#step Stepper stepper_motor = Arduino_BT_Stepper()
+servo_motor = Arduino_Servo()
 
 def pixels_to_degrees(pixels, axis):
     if axis == X:
@@ -88,6 +90,11 @@ def crop_rect(img,rect):
        img_crop = np.rot90(img_crop)
     return img_crop
 
+
+def cleanup():
+    print(RED + "Exit" + NORMAL)
+    stepper_motor.cleanup()
+    servo_motor.cleanup()
 
 cam = PiCamera()
 
@@ -168,7 +175,10 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
                 x_height = len(roi)                 
                 predict = 0
                     
-                   
+              
+                if use_screen:
+                    cv2.imshow("roig",roi)
+                
                 if roi is not None and len(roi)>0 and len(roi[0])>0:
                     imArr = []
                         
@@ -207,18 +217,27 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
             print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
         #ofriflag = 0
         stepper_to_move = pixels_to_degrees(pos_from_mid[X], X) - deg_moved # Partial : - deg_moved
-        # Servo servo_to_move = pixels_to_degrees(pos_from_mid[Y], Y)
+        servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y)
         if disable_mode and shoot_time > movement_end_time or not disable_mode:
             #print('to move: ' + str(stepper_to_move+deg_moved) + 'move more: ' + str(stepper_to_move))
             direction = sign(stepper_to_move) # Partial
             stepper_motor.rotate(stepper_to_move)
-            # Servo servo_motor.rotate(servo_to_move)
+            servo_motor.rotate(servo_to_move)
 
             stepper_motor.send_distance(distance)
             movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
             movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(stepper_to_move * deg_time * 1000))) # Partial
             
 
+        
+        if use_screen:
+          # i frame = cv2.resize(frame,(640,480))
+            cv2.imshow("Tracking", frame)
+            #cv2.imshow("masked2", maskbgr)
+            #cv2.imshow("masked3", hsvbgr)
+            cv2.imshow("masked", masked)
+          #  cv2.imshow("masked2", maskedbgr)
+            
     #else NO DETECTION
   
          
