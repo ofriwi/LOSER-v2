@@ -4,7 +4,7 @@
 // *** General ***
 const bool DEBUG_MODE = true;
 bool new_input = false;
-bool use_bt = false;
+bool use_bt = true;
 int motorSpeed = 20; // TODO: optimize
 
 // *** Stepper ***

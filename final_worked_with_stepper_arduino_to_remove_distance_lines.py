@@ -263,8 +263,7 @@ try:
                     
                     #### TODO : L delete
                     x_height = len(roi)
-                    distance = 8667*pow(x_height,-0.8693) / 100.0
-                    print(round(abs(distance)))
+                    distance = 8667*pow(x_height,-0.8693)
                     ####
                     
                     stepper_motor.send_distance(distance)

@@ -24,6 +24,15 @@ class Arduino_BT_Stepper:
         #self.sock.send(rel_angle)#struct.pack('>i', abs(rel_angle)))
         #self.sock.send(str(rel_angle))
     
+    # Send distance to motor
+    def send_distance(self, distance):
+        if DEBUG_MODE or Stepper_DEBUG_MODE:
+            print("Distance: ", distance)
+        self.sock.send('d')
+        self.sock.send(struct.pack('>B', round(abs(distance * 10))))
+        
+        
+    
     #Close serial
     def cleanup(self):
         self.rotate(0);
