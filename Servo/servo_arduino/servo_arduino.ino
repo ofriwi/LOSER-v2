@@ -1,7 +1,7 @@
 #include <Servo.h>
 #include <SoftwareSerial.h>
 #define enb 2
-#define servo_pin 7
+#define servo_pin 9
 #define reset_to_mid 255
 #define offset 100
 
@@ -30,9 +30,9 @@ void loop() {
     }   //  WAIT FOR LAST INPUT*/
     
     int input = (int)Serial.parseInt() - offset;
-    if (input == reset_to_mid){
+    if (input == reset_to_mid - offset){
       input = mid_deg;
-      current = mid_deg;
+      current = 0;
       if (DEBUG_MODE)
         Serial.println("Starting/Stopping.");
     }
