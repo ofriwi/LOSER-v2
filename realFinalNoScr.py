@@ -15,7 +15,7 @@ from Arduino_Stepper import Arduino_BT_Stepper
 from Arduino_Servo import Arduino_Servo
 from Constants import *
 
-use_screen = True
+use_screen = False
 
 # *** GUI Communication ***
 host = ''

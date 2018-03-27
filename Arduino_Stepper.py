@@ -35,10 +35,10 @@ class Arduino_BT_Stepper:
     def ping(self):
         sent = datetime.datetime.now()
         self.sock.send('p')
-        while self.sock.recv() != 'p':
-            pass
+        while self.sock.recv(1) != 'p':
+            pass#print(self.sock.recv(1))
         now = datetime.datetime.now()
-        print((sent - now).totalSeconds())
+        print((now - sent).total_seconds())
 
     
     #Close serial
