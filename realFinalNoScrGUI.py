@@ -16,6 +16,7 @@ from Arduino_Servo import Arduino_Servo
 from Constants import *
 
 use_screen = True
+shoot_time = datetime.datetime.now()
 
 # *** GUI Communication ***
 host = ''
@@ -99,7 +100,7 @@ def data_transfer(s, conn):
     global IS_START
     global IS_STOP
     # A big loop that sends/receives data until told not to.
-    while not IS_STOP:
+    while True:
         # Receive the data
         data = conn.recv(1024)  # receive the data
         data = data.decode('utf-8')
@@ -137,19 +138,24 @@ def send_results():
         results.close()
         print("Done sending")
 
+def write_line():
+    results_file.write(str(round(time_from_start, 2)) + ' ')
+    results_file.write(str(round(distance_from_target, 2)) + ' ')
+    results_file.write(str(is_inside) +'\n')
 
 def file_writer():
     global IS_NEW_LINE
     while not IS_STOP:
         if IS_NEW_LINE:
-            results_file.write(str(round(time_from_start, 2)) + ' ')
-            results_file.write(str(round(distance_from_target, 2)) + ' ')
-            results_file.write(str(is_inside) +'\n')
+            write_line()
             IS_NEW_LINE = False
+            
 
 def stopp():
     IS_STOP = True
+    # SEND TO GUI!!!!!! - KEREN SHALOM
     cleanup()
+    results_file.close()
     print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
 
 
@@ -199,7 +205,7 @@ def cleanup():
     print(RED + "Exit" + NORMAL)
     stepper_motor.cleanup()
     servo_motor.cleanup()
-
+'''
 # WIFI
 s = setup_server()
 conn = setup_connection(s)
@@ -210,7 +216,7 @@ t.start()
 # FILE
 t_file = Thread(target=file_writer)
 t_file.start()
-# End
+# End'''
 print('dd')
 cam = PiCamera()
 cam.vflip=True
@@ -241,8 +247,8 @@ hog = get_hog()
 kernal = np.ones((3,3),np.uint8)
 kernal1 = np.ones((1,1),np.uint8)
 
-while not IS_START:
-    pass
+#while not IS_START:
+#    pass
 
 start_time = datetime.datetime.now()
 print(GREEN + 'Run started!' + NORMAL)
@@ -254,6 +260,7 @@ try:
             print('100 frames reached')
             frame_num = 0
             print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
+        print((datetime.datetime.now() - shoot_time).total_seconds())
         shoot_time = datetime.datetime.now()    
         # End
 
@@ -329,6 +336,7 @@ try:
             is_inside = (abs(pos_from_mid[0]) <= size[0] and abs(pos_from_mid[1]) <= size[1])
             # 
             IS_NEW_LINE = True
+            write_line()
             distance = 86.67*pow(x_height,-0.8693)
             if use_screen:
                 cv2.drawContours(frame,[np.int0(cv2.boxPoints(rect))],0,[0,255,0],2)
@@ -374,6 +382,7 @@ try:
         
         else:
             # No Detection
+            print(RED+'No Detection'+NORMAL)
             not_detected_count += 1
             if not_detected_count == not_detected_limit:
                 conn.send("BARVAZ".encode())
