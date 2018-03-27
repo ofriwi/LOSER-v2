@@ -46,6 +46,7 @@ void loop() {
       delay(BT_WAIT_TIME);
       sign = bt.read();
       timer = millis();
+      Serial.println(sign);
       if (sign == '+' || sign == '-'){
         usr_input = (int)bt.read();
         if (sign == '-'){
@@ -53,9 +54,8 @@ void loop() {
         }
         new_input = true;
       }else if (sign == 'p'){
-        bt.write('p');
-        Serial.println('ping');
-      }
+        bt.write("p");
+        Serial.println("ping");
       }else{
         while (bt.available()) bt.read();
       }
@@ -101,7 +101,7 @@ void move(){
       if (mooving){
         mooving = false;
         Serial.println("Reached target");
-        Serial.print(millis - timer());Serial.println(" ms.");
+        Serial.print(millis() - timer);Serial.println(" ms.");
       }
     }
     myStepper.step(steps);
