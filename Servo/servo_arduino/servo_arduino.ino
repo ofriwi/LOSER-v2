@@ -14,7 +14,7 @@ int motor_delay = 2; // TODO: optimize
 
 // *** Servo ***
 Servo myservo;
-int min_deg = 30, mid_deg = 50, max_deg = 90;
+int min_deg = 0, mid_deg = 70, max_deg = 115;
 int current = mid_deg;
 const int SER_WAIT_TIME = 1;
 
@@ -28,12 +28,13 @@ void setup() {
 void loop() {
   if(Serial.available() > 0){
     delay(SER_WAIT_TIME);
+    /*
     while(Serial.available() > 1){
       Serial.read();
     }   //  WAIT FOR LAST INPUT*/
-    int input = (int)Serial.parseInt() - offset;
+    int input = (int)Serial.read() - offset;
     if (input == reset_to_mid - offset){
-      input = mid_deg;
+      input = -mid_deg;
       current = 0;
       if (DEBUG_MODE)
         Serial.println("Starting/Stopping.");
@@ -41,11 +42,12 @@ void loop() {
       digitalWrite(4, HIGH);
     }
     digitalWrite(4, LOW);
-    current += input;
+    current -= input;
     current = max(current, min_deg);
     current = min(current, max_deg);
     if (DEBUG_MODE){
-      Serial.print("New input: ");Serial.println(input);
+      Serial.print("New input: ");Serial.println(input + offset);
+      Serial.print("New degree: ");Serial.println(input);
       Serial.print("New position: ");Serial.println(current);
     }
     myservo.write(current);
