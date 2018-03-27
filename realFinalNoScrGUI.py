@@ -96,6 +96,8 @@ def setup_connection(s):
 
 
 def data_transfer(s, conn):
+    global IS_START
+    global IS_STOP
     # A big loop that sends/receives data until told not to.
     while not IS_STOP:
         # Receive the data
@@ -107,11 +109,9 @@ def data_transfer(s, conn):
         command = data_message[0]
         if command == 'START':
             print("Starting")
-            global IS_START
             IS_START = True
         elif command == 'END':
             print("Ending")
-            global IS_STOP
             IS_STOP = True
             results_file.close()
             send_results()
