@@ -329,7 +329,7 @@ try:
             #if (ofriflag == 1):
             now_time = datetime.datetime.now() # Partial
             deg_moved = 0 # Disable mode
-            if partial_mode and shoot_time < movement_end_time: # Partial
+            if not disable_mode and partial_mode and shoot_time < movement_end_time: # Partial
                 print('Still moving')
                 deg_moved = direction * round(min(max(0, (now_time - movement_start_time).total_seconds()), (movement_end_time - movement_start_time).total_seconds(), (now_time - shoot_time).total_seconds(), (movement_end_time - shoot_time).total_seconds()) * 1000.0 / deg_time) # Partial
                 print(deg_moved)
