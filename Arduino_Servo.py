@@ -29,6 +29,7 @@ class Arduino_Servo:
     
     # Move to mid position
     def goto_mid(self):
+        print('Servo: ' + str(reset_to_mid))
         self.ser.write(struct.pack('>B', reset_to_mid))
 
     #Close serial
