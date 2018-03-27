@@ -79,12 +79,12 @@ def pixels_to_degrees(pixels, axis):
 
 def setup_server():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print("Socket created.")
+    print(GREEN+"Socket created."+NORMAL)
     try:
         sock.bind((host, port))
     except socket.error as msg:
         print(msg)
-    print("Socket bind complete.")
+    print(GREEN+"Socket bind complete."+NORMAL)
     return sock
 
 
@@ -97,7 +97,7 @@ def setup_connection(s):
 
 def data_transfer(s, conn):
     # A big loop that sends/receives data until told not to.
-    while True:
+    while not IS_STOP:
         # Receive the data
         data = conn.recv(1024)  # receive the data
         data = data.decode('utf-8')
@@ -129,7 +129,7 @@ def data_transfer(s, conn):
 
 def send_results():
     with open(results_path, 'rb') as results:
-        while True:
+        while not IS_STOP:
             chunk = results.read(1024)
             print(chunk.decode('utf-8'))
             conn.send(chunk)
@@ -148,6 +148,12 @@ def file_writer():
             results_file.write(str(round(distance_from_target, 2)) + ' ')
             results_file.write(str(is_inside) +'\n')
             IS_NEW_LINE = False
+
+def stopp():
+    cleanup()
+    IS_STOP = True
+    print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
+
 
 # End
 
@@ -376,13 +382,9 @@ try:
         
         
         if IS_STOP:
-            cleanup()
-            print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
+            stopp()
             break
 except KeyboardInterrupt:
-    cleanup()
-    IS_STOP = True
-    print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
-            
+    stopp()
     
 
