@@ -1,0 +1,427 @@
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Ofri
+import socket
+from threading import Thread
+
+import time, datetime
+from math import atan, degrees, radians, tan, sqrt
+from Arduino_Stepper import Arduino_BT_Stepper
+from Arduino_Servo import Arduino_Servo
+from Constants import *
+import RPi.GPIO as GPIO
+
+
+use_screen = False
+shoot_time = datetime.datetime.now()
+ALWAYS_ON = True
+
+# *** GUI Communication ***
+host = ''
+port = 5560
+
+IS_START = False
+IS_STOP = False
+
+results_path = '/home/pi/README' #TODO - add results path!! 
+results_file = open(results_path, 'w')
+IS_NEW_LINE = False
+distance_from_target = 0
+time_from_start = 0
+is_inside = True
+not_detected_count = 0
+not_detected_limit = 3
+
+# *** Partial mode ***
+counter_sent = 0
+counter_not_sent = 0
+partial_mode = True
+disable_mode = True
+RPM = 30
+deg_time = 1.0 / (RPM * 6.0) * 1000
+send_time = 50
+movement_end_time = datetime.datetime.now() 
+movement_start_time = datetime.datetime.now()
+movement_end_time = datetime.datetime.now()
+direction = 1
+
+sign = lambda a: (a>0) - (a<0)
+frame_num = 0
+
+# *** Stepper ***
+
+X = 0
+Y = 1
+
+stepper_motor = Arduino_BT_Stepper()
+stepper_magic_number = 1
+
+# *** Servo ***
+servo_motor = Arduino_Servo()
+magic_number = 0.6 # Magic number is P of servo
+CAM_TO_LASER = 3
+
+def pixels_to_degrees(pixels, axis):
+    if axis == X:
+        px_width = 512.0 ########## CHANGE
+        deg_width = 50.0#####
+    if axis == Y:
+        px_width = 256.0 ########### CHANGE
+        deg_width = 41.41######
+    alpha = degrees(atan(float(pixels) * tan(radians(deg_width / 2))*2/px_width)) # Trigo
+    '''if abs(alpha) <= 1: # TODO : remove if not good
+        alpha = 0'''
+    alpha *= stepper_magic_number
+    # alpha = float(pixels) * deg_width / px_width
+    return round(alpha)
+
+
+def setup_server():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print(GREEN+"Socket created."+NORMAL)
+    try:
+        sock.bind((host, port))
+    except socket.error as msg:
+        print(msg)
+    print(GREEN+"Socket bind complete."+NORMAL)
+    return sock
+
+
+def setup_connection(s):
+    s.listen(1)  # Allows one connection at a time.
+    conn, address = s.accept()
+    print("Connected to: " + address[0] + ":" + str(address[1]))
+    return conn    
+
+
+def data_transfer(s, conn):
+    global IS_START
+    global IS_STOP
+    # A big loop that sends/receives data until told not to.
+    while True:
+        # Receive the data
+        data = conn.recv(1024)  # receive the data
+        data = data.decode('utf-8')
+        # Split the data such that you separate the command
+        # from the rest of the data.
+        data_message = data.split(' ', 1)
+        command = data_message[0]
+        if command == 'START':
+            print("Starting\n")
+            IS_START = True
+        elif command == 'END':
+            print("Ending")
+            IS_STOP = True
+            results_file.close()
+        elif command == 'GET':
+            print("Getting")
+            send_results()
+            s.close()
+            break
+        else:
+            print("Unknown command")
+        print("reply sent")
+    conn.close()
+
+
+def send_results():
+    time.sleep(1)
+    with open(results_path, 'rb') as results:
+        conn.send("STARTING\n".encode())
+        while True:
+            chunk = results.read(1024)
+            print(chunk.decode('utf-8'))
+            conn.send(chunk)
+            if not chunk:
+                break
+        conn.send("DONE".encode())
+        results.close()
+        print("Done sending")
+        conn.close()
+        s.close()
+        
+
+def write_line():
+    results_file.write(str(round(time_from_start, 2)) + ' ')
+    results_file.write(str(round(distance_from_target, 2)) + ' ')
+    results_file.write(str(int(is_inside)) +'\n')
+
+def file_writer():
+    global IS_NEW_LINE
+    while not IS_STOP:
+        if IS_NEW_LINE:
+            write_line()
+            IS_NEW_LINE = False
+            
+
+def stopp():
+    IS_STOP = True
+    GPIO.output(3,1)
+    results_file.close()
+    print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
+    send_results()
+    cleanup()
+
+
+# End
+
+model = cv2.ml.SVM_load("SVM.dat")
+
+timeArr = []
+def get_hog():
+    winSize = (20, 20)
+    blockSize = (8, 8)
+    blockStride = (4, 4)
+    cellSize = (8, 8)
+    nbins = 9
+    derivAperture = 1
+    winSigma = -1.
+    histogramNormType = 0
+    L2HysThreshold = 0.2
+    gammaCorrection = 1
+    nlevels = 64
+    signedGradient = True
+
+    hog = cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins, derivAperture, winSigma,
+                            histogramNormType, L2HysThreshold, gammaCorrection, nlevels, signedGradient)
+    return hog
+
+def crop_rect(img,rect):
+    angle = rect[2]
+    rows,cols = img.shape[0],img.shape[1]
+    
+    
+    M = cv2.getRotationMatrix2D(rect[0],angle,1)
+    img_rot = cv2.warpAffine(img,M,(cols,rows))
+    rect0 = (rect[0],rect[1],0.0)
+    box = cv2.boxPoints(rect)
+    pts = np.int0(cv2.transform(np.array([box]),M))[0]
+    pts[pts<0]=0
+    img_crop = img_rot[pts[1][1]:pts[0][1], pts[1][0]:pts[2][0]]
+    if(img_crop.shape[0]==0 or img_crop.shape[1]==0):
+        return img_crop
+    if img_crop.shape[1]>img_crop.shape[0]:      
+       img_crop = np.rot90(img_crop)
+    return img_crop
+
+
+def cleanup():
+    print(RED + "Exit" + NORMAL)
+    stepper_motor.cleanup()
+    servo_motor.cleanup()
+'''
+# WIFI
+s = setup_server()
+conn = setup_connection(s)
+t = Thread(target=data_transfer, args=(s, conn, ))
+t.start()
+# End
+
+# FILE
+t_file = Thread(target=file_writer)
+t_file.start()
+# End'''
+s = setup_server()
+conn = setup_connection(s)
+print('dd')
+GPIO.setmode(GPIO.BOARD)#setting up the laser
+GPIO.setup(3,GPIO.OUT)
+GPIO.output(3, 0)
+cam = PiCamera()
+cam.vflip=True
+cam.resolution=(512,256)#300150500250
+center = (512/2,256/2)
+
+cam.awb_gains=[1.3,1.3]
+#cam.rotation = 270
+#cam.hflip = True
+cam.shutter_speed = 5000
+cam.exposure_mode='antishake'
+raw= PiRGBArray(cam)
+time.sleep(0.1)
+
+
+time.sleep(0.1)
+cam.capture(raw,format="bgr")
+frame = raw.array
+
+raw.truncate(0)
+
+x_height=1
+predict=0
+predict2=0
+
+hog = get_hog()
+
+kernal = np.ones((3,3),np.uint8)
+kernal1 = np.ones((1,1),np.uint8)
+
+#while not IS_START:
+#    pass
+
+start_time = datetime.datetime.now()
+print(GREEN + 'Run started!' + NORMAL)
+try:
+    for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
+        # Ofri
+        frame_num += 1
+        if frame_num == 100:
+            print('100 frames reached')
+            frame_num = 0
+            print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
+        print((datetime.datetime.now() - shoot_time).total_seconds())
+        shoot_time = datetime.datetime.now()    
+        # End
+
+        raw.truncate(0)
+        timer = cv2.getTickCount()
+        frame =  fram.array       
+        
+        frame = (255-frame)
+        hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)     
+         
+        l = np.array([40,40,170]) #good
+        u = np.array([100,200,220]) # good
+        mask = cv2.inRange(hsv,l,u)
+            
+            
+        mask = cv2.erode(mask,kernal1, iterations = 1)
+        mask = cv2.dilate(mask,kernal, iterations = 4)
+            
+            
+        frame = (255-frame)
+        masked = cv2.bitwise_and(frame,frame,mask=mask)
+
+        im2, contours, hierarchy = cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+            
+        c = 0
+        rect = 0
+        if len(contours) > 0:
+            contours = sorted(contours, key = cv2.contourArea, reverse = True)
+            contours = contours[0:10]
+                
+            for con in contours:               
+
+                x,y,w,h = cv2.boundingRect(con)
+                rect = cv2.minAreaRect(con)
+                    
+                if w!=0 and h!=0 and w*h > 400 and float(w)/ h < 3 and float(w)/ h > 0.1:
+                        
+                    roi= crop_rect(frame,rect)
+                     #   roi = crop_rect(frame,(rect[0],(rect[1][0]*1.2,rect[1][1]*1.2),rect[2]))
+                    x_height = len(roi)                 
+                    predict = 0
+                        
+                  
+                    if use_screen:
+                        cv2.imshow("roig",roi)
+                    
+                    if roi is not None and len(roi)>0 and len(roi[0])>0:
+                        imArr = []
+                            
+                        roi=cv2.cvtColor(roi,cv2.COLOR_BGR2GRAY)                        
+                        roi = cv2.resize(roi,(20,20))
+                            
+                           
+                            
+                        imArr.append(hog.compute(roi))                  
+                        imArr = np.array(imArr)
+                          
+                        predict = model.predict(imArr)[1][0]
+                        if predict == 1:                  
+                            c = con
+                            break             
+                
+        if type(c) != int:
+            # Detection
+            not_detected_count = 0
+            rect = cv2.minAreaRect(c)
+            a = rect[0]
+            pos_from_mid = (a[0]-center[0], a[1]-center[1])
+            cm_dist = [0,0]
+            cm_dist[0] = pos_from_mid[0] / x_height * 29.7
+            cm_dist[1] = pos_from_mid[1] / x_height * 29.7
+            distance_from_target = sqrt(cm_dist[0]*cm_dist[0] + cm_dist[1]*cm_dist[1])
+            time_from_start = (shoot_time - start_time).total_seconds()
+            # TODO: Is inside box
+            size = rect[1]
+            is_inside = (abs(pos_from_mid[0]) <= size[0] and abs(pos_from_mid[1]) <= size[1])
+            is_inside_center = (abs(pos_from_mid[0]) <= size[0]*2/3 and abs(pos_from_mid[1]) <= size[1]*2/3)
+            # 
+            IS_NEW_LINE = True
+            write_line()
+            distance = 86.67*pow(x_height,-0.8693)
+            if use_screen:
+                cv2.drawContours(frame,[np.int0(cv2.boxPoints(rect))],0,[0,255,0],2)
+            # Ofri
+            #ofriflag += 1
+            #if (ofriflag == 1):
+            now_time = datetime.datetime.now() # Partial
+            deg_moved = 0 # Disable mode
+            if not disable_mode and partial_mode and shoot_time < movement_end_time: # Partial
+                print('Still moving')
+                deg_moved = direction * round(min(max(0, (now_time - movement_start_time).total_seconds()), (movement_end_time - movement_start_time).total_seconds(), (now_time - shoot_time).total_seconds(), (movement_end_time - shoot_time).total_seconds()) * 1000.0 / deg_time) # Partial
+                print(deg_moved)
+                print('shoot to end=' + str(round((movement_end_time - shoot_time).total_seconds() * 1000.0 / deg_time))) # Partial
+                print('shoot to now=' + str(round((now_time - shoot_time).total_seconds() * 1000.0 / deg_time))) # Partial
+                print('start to end=' + str(round((movement_end_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
+                print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
+            #ofriflag = 0
+            stepper_to_move = 0
+            servo_to_move = 0
+            if not is_inside_center:
+                stepper_to_move = -(pixels_to_degrees(pos_from_mid[X], X) - deg_moved) # Partial : - deg_moved
+                servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y) + CAM_TO_LASER
+            if disable_mode and shoot_time > movement_end_time or not disable_mode:
+                counter_sent += 1
+                #print('to move: ' + str(stepper_to_move+deg_moved) + 'move more: ' + str(stepper_to_move))
+                direction = sign(stepper_to_move) # Partial
+                stepper_motor.rotate(stepper_to_move)
+                servo_motor.rotate(servo_to_move)
+
+                stepper_motor.send_distance(distance)
+                movement_start_time = datetime.datetime.now() + datetime.timedelta(microseconds=send_time * 1000) # Partial
+                movement_end_time = movement_start_time + abs(datetime.timedelta(microseconds=round(stepper_to_move * deg_time * 1000))) # Partial
+            else:
+                counter_not_sent += 1
+            
+            if not ALWAYS_ON:
+                if is_inside:
+                    GPIO.output(3,0) # LASER ON
+                else:
+                    GPIO.output(3,1) # LASER OFF
+                        
+
+        else:
+            # No Detection
+            print(RED+'No Detection'+NORMAL)
+            not_detected_count += 1
+            if not_detected_count == not_detected_limit:
+                conn.send("BARVAZ".encode())
+            if not ALWAYS_ON:
+                GPIO.output(3,1) # LASER OFF
+                
+            
+        if use_screen:
+              # i frame = cv2.resize(frame,(640,480))
+            cv2.circle(frame,center,5,[0,0,255],1)
+            cv2.imshow("Tracking", frame)
+                #cv2.imshow("masked2", maskbgr)
+                #cv2.imshow("masked3", hsvbgr)
+            cv2.imshow("masked", masked)
+              #  cv2.imshow("masked2", maskedbgr)
+            cv2.waitKey(1)
+                
+        
+        if IS_STOP:
+            stopp()
+            break
+except KeyboardInterrupt:
+    stopp()
+   
+
