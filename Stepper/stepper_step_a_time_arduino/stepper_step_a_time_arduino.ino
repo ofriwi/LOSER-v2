@@ -7,6 +7,9 @@ bool new_input = false;
 bool use_bt = true;
 int motorSpeed = 20; // TODO: optimize
 
+long timer = millis();
+bool mooving = false;
+
 // *** Stepper ***
 const int stepsPerRevolution = 400; // TODO: choose
 int STEPS_A_TIME = 1;
@@ -42,6 +45,7 @@ void loop() {
       Serial.println("BT");
       delay(BT_WAIT_TIME);
       sign = bt.read();
+      timer = millis();
       if (sign == '+' || sign == '-'){
         usr_input = (int)bt.read();
         if (sign == '-'){
@@ -67,6 +71,7 @@ void loop() {
 
   if (new_input){
       new_input = false;
+      mooving = true;
       if (DEBUG_MODE)
         Serial.print("User input: ");Serial.println(usr_input);
       set_target(usr_input);
@@ -92,6 +97,12 @@ void move(){
         steps = min(target - current, STEPS_A_TIME);
     } else if (target < current){
         steps = -min(current - target, STEPS_A_TIME);
+    }else{
+      if (mooving){
+        mooving = false;
+        Serial.println("Reached target");
+        Serial.print(millis - timer());Serial.println(" ms.");
+      }
     }
     myStepper.step(steps);
     degCount += 360.0 / stepsPerRevolution * steps;
