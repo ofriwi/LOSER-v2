@@ -5,7 +5,7 @@
 const bool DEBUG_MODE = true;
 bool new_input = false;
 bool use_bt = true;
-int motorSpeed = 20; // TODO: optimize
+int motorSpeed = 30; // TODO: optimize
 
 long timer = millis();
 bool mooving = false;

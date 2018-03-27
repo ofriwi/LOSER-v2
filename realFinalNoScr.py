@@ -37,7 +37,7 @@ counter_sent = 0
 counter_not_sent = 0
 partial_mode = True
 disable_mode = True
-RPM = 20
+RPM = 30
 deg_time = 1.0 / (RPM * 6.0) * 1000
 send_time = 50
 movement_end_time = datetime.datetime.now() 
@@ -339,8 +339,8 @@ try:
                 print('start to end=' + str(round((movement_end_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
                 print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
             #ofriflag = 0
-            stepper_to_move = -(pixels_to_degrees(pos_from_mid[X], X) - deg_moved) + CAM_TO_LASER # Partial : - deg_moved
-            servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y)
+            stepper_to_move = -(pixels_to_degrees(pos_from_mid[X], X) - deg_moved) # Partial : - deg_moved
+            servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y) + CAM_TO_LASER
             if disable_mode and shoot_time > movement_end_time or not disable_mode:
                 counter_sent += 1
                 #print('to move: ' + str(stepper_to_move+deg_moved) + 'move more: ' + str(stepper_to_move))

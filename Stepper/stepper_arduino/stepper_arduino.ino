@@ -4,8 +4,8 @@
 // *** General ***
 const bool DEBUG_MODE = true;
 bool new_input = false;
-bool use_bt = false;
-int motorSpeed = 20; // TODO: optimize
+bool use_bt = true;
+int motorSpeed = 30; // TODO: optimize
 
 // *** Stepper ***
 const int stepsPerRevolution = 400; // TODO: choose
@@ -17,6 +17,8 @@ SoftwareSerial bt (11,12);  //RX, TX (Switched on the Bluetooth - RX -> TX | TX 
 int usr_input = 0;
 char sign;
 const int BT_WAIT_TIME = 3, SER_WAIT_TIME = 1; // TODO : optimize
+
+long timer = millis();
 
 void setup() {
   if (use_bt){
@@ -36,11 +38,20 @@ void loop() {
       Serial.println("BT");
       delay(BT_WAIT_TIME);
       sign = bt.read();
-      usr_input = (int)bt.read();
-      if (sign == '-'){
-        usr_input = -usr_input;
+      timer = millis();
+      Serial.println(sign);
+      if (sign == '+' || sign == '-'){
+        usr_input = (int)bt.read();
+        if (sign == '-'){
+          usr_input = -usr_input;
+        }
+        new_input = true;
+      }else if (sign == 'p'){
+        bt.write("p");
+        Serial.println("ping");
+      }else{
+        while (bt.available()) bt.read();
       }
-      new_input = true;
     }
   }else{
     if (Serial.available() > 0) {

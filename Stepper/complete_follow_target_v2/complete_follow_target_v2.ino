@@ -44,7 +44,7 @@ void setup() {
   Wire.begin();
   
    // set the motor speed at 60 rpm:
-  myStepper.setSpeed(10);
+  myStepper.setSpeed(30);
 
   //BT setup
   Serial.begin(9600); //Open Serial connection for debugging
