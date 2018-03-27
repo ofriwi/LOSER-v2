@@ -21,7 +21,7 @@ class Arduino_BT_Stepper:
             self.sock.send('+')
         else:
             self.sock.send('-')
-        self.sock.send(struct.pack('>B', abs(rel_angle)))
+        self.sock.send(struct.pack('>B', abs(int(rel_angle))))
         #self.sock.send(rel_angle)#struct.pack('>i', abs(rel_angle)))
         #self.sock.send(str(rel_angle))
     
