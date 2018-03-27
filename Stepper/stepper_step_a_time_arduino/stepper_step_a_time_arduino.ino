@@ -48,6 +48,10 @@ void loop() {
           usr_input = -usr_input;
         }
         new_input = true;
+      }else if (sign == 'p'){
+        bt.write('p');
+        Serial.println('ping');
+      }
       }else{
         while (bt.available()) bt.read();
       }
@@ -81,7 +85,7 @@ void set_target(int degrees){
 void move(){
     int steps = 0;
     if (cur_direction != (target > current)){
-      delay(100);
+      delay(10);
       cur_direction = target>current;
     }
     if (target > current){
