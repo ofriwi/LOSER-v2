@@ -340,7 +340,7 @@ try:
                 print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
             #ofriflag = 0
             stepper_to_move = -(pixels_to_degrees(pos_from_mid[X], X) - deg_moved) # Partial : - deg_moved
-            servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y)
+            servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y) + CAM_TO_LASER
             if disable_mode and shoot_time > movement_end_time or not disable_mode:
                 counter_sent += 1
                 #print('to move: ' + str(stepper_to_move+deg_moved) + 'move more: ' + str(stepper_to_move))
