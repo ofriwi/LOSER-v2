@@ -135,7 +135,7 @@ def send_results():
             conn.send(chunk)
             if not chunk:
                 break
-        conn.send()
+        conn.send("DONE".encode())
         results.close()
         print("Done sending")
 
