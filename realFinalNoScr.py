@@ -36,7 +36,7 @@ is_inside = True
 counter_sent = 0
 counter_not_sent = 0
 partial_mode = True
-disable_mode = False
+disable_mode = True
 RPM = 20
 deg_time = 1.0 / (RPM * 6.0) * 1000
 send_time = 50
@@ -329,7 +329,7 @@ try:
             #if (ofriflag == 1):
             now_time = datetime.datetime.now() # Partial
             deg_moved = 0 # Disable mode
-            if not disable_mode and partial_mode and shoot_time < movement_end_time: # Partial
+            if partial_mode and shoot_time < movement_end_time: # Partial
                 print('Still moving')
                 deg_moved = direction * round(min(max(0, (now_time - movement_start_time).total_seconds()), (movement_end_time - movement_start_time).total_seconds(), (now_time - shoot_time).total_seconds(), (movement_end_time - shoot_time).total_seconds()) * 1000.0 / deg_time) # Partial
                 print(deg_moved)
