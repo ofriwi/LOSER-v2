@@ -6,15 +6,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Ofri
+import socket
+from threading import Thread
 
 import time, datetime
-from math import atan, degrees, radians, tan
+from math import atan, degrees, radians, tan, sqrt
 from Arduino_Stepper import Arduino_BT_Stepper
 from Arduino_Servo import Arduino_Servo
 from Constants import *
 
 use_screen = True
-magic_number = 0.4 # Magic number is P of servo
+
+# *** GUI Communication ***
+host = ''
+port = 5560
+
+IS_START = False
+IS_STOP = False
+
+results_path = "" #TODO - add results path!! 
+results_file = open(results_path, 'w')
+IS_NEW_LINE = False
+distance_from_target = 0
+time_from_start = 0
+is_inside = True
+
 
 # *** Partial mode ***
 partial_mode = True
@@ -38,6 +54,9 @@ Y = 1
 stepper_motor = Arduino_BT_Stepper()
 servo_motor = Arduino_Servo()
 
+# *** Servo ***
+magic_number = 0.4 # Magic number is P of servo
+
 def pixels_to_degrees(pixels, axis):
     if axis == X:
         px_width = 512.0 ########## CHANGE
@@ -50,7 +69,80 @@ def pixels_to_degrees(pixels, axis):
     return round(alpha)
 
 
+def setup_server():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print("Socket created.")
+    try:
+        sock.bind((host, port))
+    except socket.error as msg:
+        print(msg)
+    print("Socket bind complete.")
+    return sock
+
+
+def setup_connection(s):
+    s.listen(1)  # Allows one connection at a time.
+    conn, address = s.accept()
+    print("Connected to: " + address[0] + ":" + str(address[1]))
+    return conn
+
+
+def data_transfer(s, conn):
+    # A big loop that sends/receives data until told not to.
+    while True:
+        # Receive the data
+        data = conn.recv(1024)  # receive the data
+        data = data.decode('utf-8')
+        # Split the data such that you separate the command
+        # from the rest of the data.
+        data_message = data.split(' ', 1)
+        command = data_message[0]
+        if command == 'START':
+            print("Starting")
+            global IS_START
+            IS_START = True
+        elif command == 'END':
+            print("Ending")
+            global IS_STOP
+            IS_STOP = True
+            results_file.close()
+            send_results()
+            s.close()
+        elif command == 'GET':
+            print("Getting")
+            send_results()
+            s.close()
+            break
+        else:
+            print("Unknown command")
+        print("reply sent")
+    conn.close()
+
+
+def send_results():
+    with open(results_path, 'rb') as results:
+        while True:
+            chunk = results.read(1024)
+            print(chunk.decode('utf-8'))
+            conn.send(chunk)
+            if not chunk:
+                break
+        conn.send()
+        results.close()
+        print("Done sending")
+
+
+def file_writer():
+    global IS_NEW_LINE
+    while not IS_STOP:
+        if IS_NEW_LINE:
+            results_file.write(str(round(distance_from_target, 2)) + ' ')
+            results_file.write(str(round(time_from_start, 2)) + ' ')
+            results_file.write(str(is_inside) +'\n')
+            IS_NEW_LINE = False
+
 # End
+
 model = cv2.ml.SVM_load("SVM.dat")
 
 timeArr = []
@@ -96,6 +188,18 @@ def cleanup():
     stepper_motor.cleanup()
     servo_motor.cleanup()
 
+ # WIFI
+s = setup_server()
+conn = setup_connection(s)
+t = Thread(target=data_transfer, args=(s, conn, ))
+t.start()
+# End
+
+# FILE
+t_file = Thread(target=file_writer)
+t_file.start()
+# End
+
 cam = PiCamera()
 cam.vflip=True
 cam.resolution=(512,256)#300150500250
@@ -125,7 +229,9 @@ hog = get_hog()
 kernal = np.ones((3,3),np.uint8)
 kernal1 = np.ones((1,1),np.uint8)
 
-
+while not IS_START:
+    pass
+start_time = datetime.datetime.now()
 print(GREEN + 'Run started!' + NORMAL)
 for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
     # Ofri
@@ -170,7 +276,7 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
                 
             if w!=0 and h!=0 and w*h > 400 and float(w)/ h < 3 and float(w)/ h > 0.1:
                     
-                roi= crop_rect(frame,rect)                  
+                roi= crop_rect(frame,rect)
                  #   roi = crop_rect(frame,(rect[0],(rect[1][0]*1.2,rect[1][1]*1.2),rect[2]))
                 x_height = len(roi)                 
                 predict = 0
@@ -200,6 +306,13 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
         rect = cv2.minAreaRect(c)
         a = rect[0]
         pos_from_mid = (a[0]-center[0], a[1]-center[1])
+        distance_from_target = sqrt(pos_from_mid[0]^2 + pos_from_mid[1]^2)
+        time_from_start = (shoot_time - start_time).total_seconds()
+        # TODO: Is inside box
+        size = rect[1]
+        is_inside = (abs(pos_from_mid[0]) <= size[0] and abs(pos_from_mid[1]) <= size[1])
+        # 
+        IS_NEW_LINE = True
         distance = 86.67*pow(x_height,-0.8693)
         if use_screen:
             cv2.drawContours(frame,[np.int0(cv2.boxPoints(rect))],0,[0,255,0],2)
@@ -240,11 +353,8 @@ for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
         cv2.imshow("masked", masked)
           #  cv2.imshow("masked2", maskedbgr)
         cv2.waitKey(1)
-            
     #else NO DETECTION
-  
-         
 
-      
-   
-            
+    if IS_STOP:
+        cleanup()
+        break
