@@ -54,11 +54,12 @@ X = 0
 Y = 1
 
 stepper_motor = Arduino_BT_Stepper()
-servo_motor = Arduino_Servo()
+stepper_magic_number = 0.8
 
 # *** Servo ***
+servo_motor = Arduino_Servo()
 magic_number = 0.4 # Magic number is P of servo
-stepper_magic_number = 0.8
+CAM_TO_LASER = 1
 
 def pixels_to_degrees(pixels, axis):
     if axis == X:
@@ -338,7 +339,7 @@ try:
                 print('start to end=' + str(round((movement_end_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
                 print('start to now=' + str(round((now_time - movement_start_time).total_seconds() * 1000.0 / deg_time))) # Partial
             #ofriflag = 0
-            stepper_to_move = -(pixels_to_degrees(pos_from_mid[X], X) - deg_moved) # Partial : - deg_moved
+            stepper_to_move = -(pixels_to_degrees(pos_from_mid[X], X) - deg_moved) + CAM_TO_LASER # Partial : - deg_moved
             servo_to_move = -magic_number*pixels_to_degrees(pos_from_mid[Y], Y)
             if disable_mode and shoot_time > movement_end_time or not disable_mode:
                 counter_sent += 1
