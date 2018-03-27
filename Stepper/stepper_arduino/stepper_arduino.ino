@@ -46,6 +46,7 @@ void loop() {
     if (Serial.available() > 0) {
       usr_input = (int)Serial.parseInt();
       delay(SER_WAIT_TIME);
+      Serial.println("INPUT");
       while(Serial.available()) Serial.read();
       new_input = true;
     }

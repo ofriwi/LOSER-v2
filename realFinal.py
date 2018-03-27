@@ -56,6 +56,7 @@ servo_motor = Arduino_Servo()
 
 # *** Servo ***
 magic_number = 0.4 # Magic number is P of servo
+stepper_magic_number = 0.8
 
 def pixels_to_degrees(pixels, axis):
     if axis == X:
@@ -65,6 +66,9 @@ def pixels_to_degrees(pixels, axis):
         px_width = 256.0 ########### CHANGE
         deg_width = 41.41######
     alpha = degrees(atan(float(pixels) * tan(radians(deg_width / 2))*2/px_width)) # Trigo
+    '''if abs(alpha) <= 1: # TODO : remove if not good
+        alpha = 0'''
+    alpha *= stepper_magic_number
     # alpha = float(pixels) * deg_width / px_width
     return round(alpha)
 
