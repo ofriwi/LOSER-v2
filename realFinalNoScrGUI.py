@@ -114,8 +114,6 @@ def data_transfer(s, conn):
             print("Ending")
             IS_STOP = True
             results_file.close()
-            send_results()
-            s.close()
         elif command == 'GET':
             print("Getting")
             send_results()
@@ -129,7 +127,7 @@ def data_transfer(s, conn):
 
 def send_results():
     with open(results_path, 'rb') as results:
-        while not IS_STOP:
+        while True:
             chunk = results.read(1024)
             print(chunk.decode('utf-8'))
             conn.send(chunk)
@@ -150,8 +148,8 @@ def file_writer():
             IS_NEW_LINE = False
 
 def stopp():
-    cleanup()
     IS_STOP = True
+    cleanup()
     print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
 
 
@@ -379,7 +377,7 @@ try:
             not_detected_count += 1
             if not_detected_count == not_detected_limit:
                 conn.send("BARVAZ".encode())
-        
+                
         
         if IS_STOP:
             stopp()
