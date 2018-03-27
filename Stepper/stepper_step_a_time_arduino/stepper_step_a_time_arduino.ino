@@ -2,7 +2,7 @@
 #include <SoftwareSerial.h>
 
 // *** General ***
-const bool DEBUG_MODE = false;
+const bool DEBUG_MODE = true;
 bool new_input = false;
 bool use_bt = true;
 int motorSpeed = 20; // TODO: optimize
@@ -17,16 +17,12 @@ float degCount = 0;
 SoftwareSerial bt (11,12);  //RX, TX (Switched on the Bluetooth - RX -> TX | TX -> RX)
 int usr_input = 0;
 char sign;
-const int BT_WAIT_TIME = 3, SER_WAIT_TIME = 3; // TODO : optimize
+const int BT_WAIT_TIME = 3, SER_WAIT_TIME = 1; // TODO : optimize
 
 // *** Position ***
 int current = 0;
 int target = 0;
 bool cur_direction = true;
-
-int timee = millis();
-bool moving = false;
-int basic_time = 193;
 
 void setup() {
   if (use_bt){
@@ -43,28 +39,29 @@ void loop() {
   // TODO : optimize to prevet time leak
   if (use_bt){ 
     if (bt.available()){
-      timee = millis();
       Serial.println("BT");
       delay(BT_WAIT_TIME);
       sign = bt.read();
-      usr_input = (int)bt.read();
-      if (sign == '-'){
-        usr_input = -usr_input;
+      if (sign == '+' || sign == '-'){
+        usr_input = (int)bt.read();
+        if (sign == '-'){
+          usr_input = -usr_input;
+        }
+        new_input = true;
+      }else{
+        while (bt.available()) bt.read();
       }
-      new_input = true;
     }
   }else{
     if (Serial.available() > 0) {
-      timee = millis();
       usr_input = (int)Serial.parseInt();
-      //delay(SER_WAIT_TIME);
+      delay(SER_WAIT_TIME);
+      while(Serial.available()) Serial.read();
       new_input = true;
     }
   }
 
   if (new_input){
-  timee = millis();
-      moving = true;
       new_input = false;
       if (DEBUG_MODE)
         Serial.print("User input: ");Serial.println(usr_input);
@@ -76,26 +73,21 @@ void loop() {
 // set_target motor approximatly degrees and return how much degrees it really did.
 void set_target(int degrees){
   int steps = round(degrees / 360.0 * stepsPerRevolution);
-  if (DEBUG_MODE){
+  if (DEBUG_MODE)
     Serial.print("Steps: ");Serial.println(steps);
-  }
   target = current + steps;
 }
 
 void move(){
     int steps = 0;
     if (cur_direction != (target > current)){
-      delay(2);
+      delay(100);
       cur_direction = target>current;
     }
     if (target > current){
         steps = min(target - current, STEPS_A_TIME);
     } else if (target < current){
         steps = -min(current - target, STEPS_A_TIME);
-    }else if (moving){
-      moving= false;
-      Serial.print("Moved ");Serial.print(usr_input);Serial.print(" in ");
-      Serial.print(millis()-timee);Serial.print(" milliseconds. ");Serial.print((millis()-timee - basic_time)/usr_input);Serial.println(" avg.");
     }
     myStepper.step(steps);
     degCount += 360.0 / stepsPerRevolution * steps;

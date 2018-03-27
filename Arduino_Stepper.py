@@ -3,7 +3,7 @@ import serial
 from Constants import *
 from time import sleep
 import bluetooth
-
+import datetime
 
 class Arduino_BT_Stepper:
     
@@ -32,7 +32,14 @@ class Arduino_BT_Stepper:
         self.sock.send('d')
         self.sock.send(struct.pack('>B', round(abs(distance * 10))))
         
-        
+    def ping(self):
+        sent = datetime.datetime.now()
+        self.sock.send('p')
+        while self.sock.recv() != 'p':
+            pass
+        now = datetime.datetime.now()
+        print((sent - now).totalSeconds())
+
     
     #Close serial
     def cleanup(self):
