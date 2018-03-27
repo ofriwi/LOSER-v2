@@ -58,7 +58,7 @@ stepper_magic_number = 0.8
 
 # *** Servo ***
 servo_motor = Arduino_Servo()
-magic_number = 0.6 # Magic number is P of servo
+magic_number = 0.8 # Magic number is P of servo
 CAM_TO_LASER = 3
 
 def pixels_to_degrees(pixels, axis):
