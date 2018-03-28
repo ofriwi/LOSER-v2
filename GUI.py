@@ -1,3 +1,4 @@
+import RPi.GPIO as GPIO
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 import time
@@ -6,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Ofri
+from pynput import keyboard
 import socket
 from threading import Thread
 
@@ -14,19 +16,28 @@ from math import atan, degrees, radians, tan, sqrt
 from Arduino_Stepper import Arduino_BT_Stepper
 from Arduino_Servo import Arduino_Servo
 from Constants import *
-import RPi.GPIO as GPIO
 
 
 use_screen = False
 shoot_time = datetime.datetime.now()
 ALWAYS_ON = True
 
+IS_START = False
+IS_STOP = False
+
+# esc
+def on_press(key):
+    while True:
+        if key.char == 'a':
+            print('goodbye & night')
+            IS_STOP = True
+        
+listener = keyboard.Listener(on_press = on_press)
+listener.start()
+
 # *** GUI Communication ***
 host = ''
 port = 5560
-
-IS_START = False
-IS_STOP = False
 
 results_path = '/home/pi/README' #TODO - add results path!! 
 results_file = open(results_path, 'w')
@@ -161,7 +172,7 @@ def file_writer():
 
 def stopp():
     IS_STOP = True
-    GPIO.output(3,1)
+    GPIO.output(11,0)
     results_file.close()
     print('Sent: ' + str(counter_sent) + ' Unsent ' + str(counter_not_sent))
     send_results()
@@ -226,47 +237,47 @@ t.start()
 t_file = Thread(target=file_writer)
 t_file.start()
 # End'''
-s = setup_server()
-conn = setup_connection(s)
-print('dd')
-GPIO.setmode(GPIO.BOARD)#setting up the laser
-GPIO.setup(3,GPIO.OUT)
-GPIO.output(3, 0)
-cam = PiCamera()
-cam.vflip=True
-cam.resolution=(512,256)#300150500250
-center = (512/2,256/2)
-
-cam.awb_gains=[1.3,1.3]
-#cam.rotation = 270
-#cam.hflip = True
-cam.shutter_speed = 5000
-cam.exposure_mode='antishake'
-raw= PiRGBArray(cam)
-time.sleep(0.1)
-
-
-time.sleep(0.1)
-cam.capture(raw,format="bgr")
-frame = raw.array
-
-raw.truncate(0)
-
-x_height=1
-predict=0
-predict2=0
-
-hog = get_hog()
-
-kernal = np.ones((3,3),np.uint8)
-kernal1 = np.ones((1,1),np.uint8)
-
-#while not IS_START:
-#    pass
-
-start_time = datetime.datetime.now()
-print(GREEN + 'Run started!' + NORMAL)
 try:
+    s = setup_server()
+    conn = setup_connection(s)
+    print('dd')
+    GPIO.setmode(GPIO.BOARD)#setting up the laser
+    GPIO.setup(11,GPIO.OUT)
+    GPIO.output(11, 1)
+    cam = PiCamera()
+    cam.vflip=True
+    cam.resolution=(512,256)#300150500250
+    center = (512/2,256/2)
+
+    cam.awb_gains=[1.3,1.3]
+    #cam.rotation = 270
+    #cam.hflip = True
+    cam.shutter_speed = 5000
+    cam.exposure_mode='antishake'
+    raw= PiRGBArray(cam)
+    time.sleep(0.1)
+
+
+    time.sleep(0.1)
+    cam.capture(raw,format="bgr")
+    frame = raw.array
+
+    raw.truncate(0)
+
+    x_height=1
+    predict=0
+    predict2=0
+
+    hog = get_hog()
+
+    kernal = np.ones((3,3),np.uint8)
+    kernal1 = np.ones((1,1),np.uint8)
+
+    #while not IS_START:
+    #    pass
+
+    start_time = datetime.datetime.now()
+    print(GREEN + 'Run started!' + NORMAL)
     for fram in cam.capture_continuous(raw,format='bgr',use_video_port=True):
         # Ofri
         frame_num += 1
@@ -392,9 +403,9 @@ try:
             
             if not ALWAYS_ON:
                 if is_inside:
-                    GPIO.output(3,0) # LASER ON
+                    GPIO.output(11,1) # LASER ON
                 else:
-                    GPIO.output(3,1) # LASER OFF
+                    GPIO.output(11,0) # LASER OFF
                         
 
         else:
@@ -404,7 +415,7 @@ try:
             if not_detected_count == not_detected_limit:
                 conn.send("BARVAZ".encode())
             if not ALWAYS_ON:
-                GPIO.output(3,1) # LASER OFF
+                GPIO.output(11,0) # LASER OFF
                 
             
         if use_screen:
@@ -421,6 +432,7 @@ try:
         if IS_STOP:
             stopp()
             break
+        
 except KeyboardInterrupt:
     stopp()
    
